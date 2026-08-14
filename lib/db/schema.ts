@@ -352,3 +352,20 @@ export const OPPORTUNITY_STATUSES = [
   "ready_to_apply",
   "skipped",
 ] as const;
+
+// Application-side status groupings, used for the Applications list filter tabs.
+export const APPLIED_STATUSES = ["applied"] as const;
+export const PROCEEDED_STATUSES = [
+  "recruiter_screening",
+  "first_interview",
+  "interview_process",
+  "assignment_case_study",
+  "final_interview",
+  "offer",
+] as const;
+export const REJECTED_STATUSES = [
+  "rejected",
+  "withdrawn",
+  "ghosted",
+  "position_closed",
+] as const;

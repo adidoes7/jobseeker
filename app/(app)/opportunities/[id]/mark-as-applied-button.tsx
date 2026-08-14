@@ -14,6 +14,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type Cv = { id: string; name: string; isDefault: boolean };
 
@@ -40,19 +47,26 @@ export function MarkAsAppliedButton({
         <form action={markAsApplied.bind(null, applicationId)} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="cvId">CV used</Label>
-            <select
-              id="cvId"
-              name="cvId"
-              defaultValue={defaultCvId}
-              className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-            >
-              {cvs.length === 0 && <option value="">No CVs uploaded</option>}
-              {cvs.map((cv) => (
-                <option key={cv.id} value={cv.id}>
-                  {cv.name}
-                </option>
-              ))}
-            </select>
+            {cvs.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No CVs uploaded yet.</p>
+            ) : (
+              <Select
+                name="cvId"
+                defaultValue={defaultCvId}
+                items={Object.fromEntries(cvs.map((cv) => [cv.id, cv.name]))}
+              >
+                <SelectTrigger id="cvId" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {cvs.map((cv) => (
+                    <SelectItem key={cv.id} value={cv.id}>
+                      {cv.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="coverLetter">Cover letter (optional)</Label>

@@ -13,7 +13,30 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { ExtractedJob } from "@/lib/ai/schemas";
+
+const REMOTE_STATUS_ITEMS = {
+  unknown: "Unknown",
+  remote: "Remote",
+  hybrid: "Hybrid",
+  onsite: "Onsite",
+};
+
+const SOURCE_ITEMS = {
+  linkedin: "LinkedIn",
+  company_website: "Company website",
+  referral: "Referral",
+  indeed: "Indeed",
+  recruiter: "Recruiter",
+  other: "Other",
+};
 
 export function OpportunityForm({ draft, jobUrl }: { draft: ExtractedJob | null; jobUrl: string }) {
   const [state, action, pending] = useActionState<SaveOpportunityState, FormData>(
@@ -41,17 +64,21 @@ export function OpportunityForm({ draft, jobUrl }: { draft: ExtractedJob | null;
           <Field label="Location" name="location" defaultValue={draft?.location} />
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="remoteStatus">Remote status</Label>
-            <select
-              id="remoteStatus"
+            <Select
               name="remoteStatus"
               defaultValue={draft?.remoteStatus ?? "unknown"}
-              className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              items={REMOTE_STATUS_ITEMS}
             >
-              <option value="unknown">Unknown</option>
-              <option value="remote">Remote</option>
-              <option value="hybrid">Hybrid</option>
-              <option value="onsite">Onsite</option>
-            </select>
+              <SelectTrigger id="remoteStatus" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="unknown">Unknown</SelectItem>
+                <SelectItem value="remote">Remote</SelectItem>
+                <SelectItem value="hybrid">Hybrid</SelectItem>
+                <SelectItem value="onsite">Onsite</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <Field
             label="Salary min"
@@ -68,19 +95,19 @@ export function OpportunityForm({ draft, jobUrl }: { draft: ExtractedJob | null;
           <Field label="Salary currency" name="salaryCurrency" defaultValue={draft?.salaryCurrency} />
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="source">Source</Label>
-            <select
-              id="source"
-              name="source"
-              defaultValue={draft?.source ?? "other"}
-              className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-            >
-              <option value="linkedin">LinkedIn</option>
-              <option value="company_website">Company website</option>
-              <option value="referral">Referral</option>
-              <option value="indeed">Indeed</option>
-              <option value="recruiter">Recruiter</option>
-              <option value="other">Other</option>
-            </select>
+            <Select name="source" defaultValue={draft?.source ?? "other"} items={SOURCE_ITEMS}>
+              <SelectTrigger id="source" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="linkedin">LinkedIn</SelectItem>
+                <SelectItem value="company_website">Company website</SelectItem>
+                <SelectItem value="referral">Referral</SelectItem>
+                <SelectItem value="indeed">Indeed</SelectItem>
+                <SelectItem value="recruiter">Recruiter</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <Field label="Application URL" name="applicationUrl" defaultValue={draft?.applicationUrl} />
 

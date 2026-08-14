@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { eq, and, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { applications, companies, profiles, timelineEvents } from "@/lib/db/schema";
+import { applications, companies, cvs, profiles, timelineEvents } from "@/lib/db/schema";
 import { createClient } from "@/lib/supabase/server";
 import { opportunitySchema } from "@/lib/validation/schemas";
 import {
@@ -16,6 +16,7 @@ import {
 import { fetchJobPageText } from "@/lib/scrape/fetch-job-page";
 import { extractJobFromText } from "@/lib/ai/extract-job";
 import { runFitReview } from "@/lib/ai/review-fit";
+import { isProfileReadyForReview } from "@/lib/profile-readiness";
 import type { ExtractedJob } from "@/lib/ai/schemas";
 
 async function requireUser() {
@@ -140,14 +141,18 @@ export async function skipOpportunity(id: string) {
 export async function runFitReviewAction(applicationId: string) {
   const user = await requireUser();
 
-  const [application, profile] = await Promise.all([
+  const [application, profile, userCvs] = await Promise.all([
     db.query.applications.findFirst({
       where: and(eq(applications.id, applicationId), eq(applications.userId, user.id)),
       with: { company: true },
     }),
     db.query.profiles.findFirst({ where: eq(profiles.userId, user.id) }),
+    db.query.cvs.findMany({ where: eq(cvs.userId, user.id), columns: { id: true } }),
   ]);
   if (!application || !profile) throw new Error("Not found");
+  if (!isProfileReadyForReview(profile, userCvs.length)) {
+    throw new Error("Profile is not ready for review");
+  }
 
   const review = await runFitReview(
     {

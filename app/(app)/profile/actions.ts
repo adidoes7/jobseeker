@@ -37,12 +37,12 @@ export async function updateProfile(
     yearsExperience: parseNullableInt(formData.get("yearsExperience")),
     location: parseNullableString(formData.get("location")),
     preferredLocations: parseCommaList(formData.get("preferredLocations")),
-    workPreference: (parseNullableString(formData.get("workPreference")) as
-      | "remote"
-      | "hybrid"
-      | "onsite"
-      | "flexible"
-      | null),
+    workPreference: (() => {
+      const v = parseNullableString(formData.get("workPreference"));
+      return v && v !== "unset"
+        ? (v as "remote" | "hybrid" | "onsite" | "flexible")
+        : null;
+    })(),
     workAuthorization: parseNullableString(formData.get("workAuthorization")),
     salaryExpectationMin: parseNullableInt(formData.get("salaryExpectationMin")),
     salaryExpectationMax: parseNullableInt(formData.get("salaryExpectationMax")),

@@ -3,6 +3,13 @@
 import { useTransition } from "react";
 import { updateStatus } from "../actions";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const PIPELINE_STATUSES = [
   "applied",
@@ -18,6 +25,10 @@ const PIPELINE_STATUSES = [
   "position_closed",
 ] as const;
 
+const STATUS_ITEMS = Object.fromEntries(
+  PIPELINE_STATUSES.map((s) => [s, s.replace(/_/g, " ")])
+);
+
 export function StatusChanger({
   applicationId,
   status,
@@ -30,23 +41,27 @@ export function StatusChanger({
   return (
     <div className="flex flex-col gap-1.5">
       <Label htmlFor="status">Status</Label>
-      <select
-        id="status"
+      <Select
+        items={STATUS_ITEMS}
         defaultValue={status}
         disabled={isPending}
-        onChange={(e) =>
+        onValueChange={(value) =>
           startTransition(() =>
-            updateStatus(applicationId, e.target.value as (typeof PIPELINE_STATUSES)[number])
+            updateStatus(applicationId, value as (typeof PIPELINE_STATUSES)[number])
           )
         }
-        className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
       >
-        {PIPELINE_STATUSES.map((s) => (
-          <option key={s} value={s}>
-            {s.replace(/_/g, " ")}
-          </option>
-        ))}
-      </select>
+        <SelectTrigger id="status" className="w-48">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {PIPELINE_STATUSES.map((s) => (
+            <SelectItem key={s} value={s}>
+              {s.replace(/_/g, " ")}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }

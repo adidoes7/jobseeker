@@ -2,14 +2,16 @@ import { eq, and } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { applications, cvs } from "@/lib/db/schema";
+import { applications, cvs, profiles } from "@/lib/db/schema";
 import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FitScoreBadge } from "@/components/fit-score-badge";
 import { RequirementMatrix } from "@/components/requirement-matrix";
 import { ReviewTrigger } from "./review-trigger";
 import { MarkAsAppliedButton } from "./mark-as-applied-button";
+import { isProfileReadyForReview } from "@/lib/profile-readiness";
 
 export default async function OpportunityDetailPage({
   params,
@@ -24,16 +26,18 @@ export default async function OpportunityDetailPage({
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const [application, userCvs] = await Promise.all([
+  const [application, userCvs, profile] = await Promise.all([
     db.query.applications.findFirst({
       where: and(eq(applications.id, id), eq(applications.userId, user.id)),
       with: { company: true, cv: true },
     }),
     db.query.cvs.findMany({ where: eq(cvs.userId, user.id) }),
+    db.query.profiles.findFirst({ where: eq(profiles.userId, user.id) }),
   ]);
   if (!application) notFound();
 
   const review = application.fitReview;
+  const profileReady = isProfileReadyForReview(profile, userCvs.length);
 
   return (
     <div className="flex flex-col gap-6">
@@ -68,7 +72,21 @@ export default async function OpportunityDetailPage({
           <CardTitle>AI Job Review</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          {!application.fitReviewedAt && <ReviewTrigger applicationId={application.id} />}
+          {!application.fitReviewedAt && !profileReady && (
+            <Alert>
+              <AlertDescription>
+                Add your CV and skills to your{" "}
+                <Link href="/profile" className="font-medium underline">
+                  Career Profile
+                </Link>{" "}
+                to get an AI comparison of how well you fit this role. You can still mark this as
+                applied without one.
+              </AlertDescription>
+            </Alert>
+          )}
+          {!application.fitReviewedAt && profileReady && (
+            <ReviewTrigger applicationId={application.id} />
+          )}
 
           {application.fitReviewedAt && (
             <>

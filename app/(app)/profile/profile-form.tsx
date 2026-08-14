@@ -15,7 +15,22 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { formatCaseStudies } from "@/lib/validation/parse";
+
+const WORK_PREFERENCE_ITEMS = {
+  unset: "Not set",
+  remote: "Remote",
+  hybrid: "Hybrid",
+  onsite: "Onsite",
+  flexible: "Flexible",
+};
 
 type ProfileFormProps = {
   profile: {
@@ -86,18 +101,22 @@ export function ProfileForm({ profile }: ProfileFormProps) {
           />
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="workPreference">Remote / hybrid / onsite</Label>
-            <select
-              id="workPreference"
+            <Select
               name="workPreference"
-              defaultValue={profile.workPreference ?? ""}
-              className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              defaultValue={profile.workPreference ?? "unset"}
+              items={WORK_PREFERENCE_ITEMS}
             >
-              <option value="">Not set</option>
-              <option value="remote">Remote</option>
-              <option value="hybrid">Hybrid</option>
-              <option value="onsite">Onsite</option>
-              <option value="flexible">Flexible</option>
-            </select>
+              <SelectTrigger id="workPreference" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="unset">Not set</SelectItem>
+                <SelectItem value="remote">Remote</SelectItem>
+                <SelectItem value="hybrid">Hybrid</SelectItem>
+                <SelectItem value="onsite">Onsite</SelectItem>
+                <SelectItem value="flexible">Flexible</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <Field
             label="Work authorization"
