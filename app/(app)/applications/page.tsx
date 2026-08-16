@@ -16,6 +16,7 @@ import { formatLocationShort } from "@/lib/format-location";
 import { isProfileReadyForReview } from "@/lib/profile-readiness";
 import { ApplicationRowActions } from "./application-row-actions";
 import { FitScoreCell } from "./fit-score-cell";
+import { StickySubheader } from "./sticky-subheader";
 import {
   Table,
   TableBody,
@@ -207,36 +208,38 @@ export default async function ApplicationsPage({
   const rows = sortApplications(filteredRows, activeSort ?? "applied", activeDir);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="font-heading text-xl font-semibold">Applications</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Jobs you&apos;ve applied to and their current status.
-        </p>
-      </div>
+    <div className="-mt-8 flex flex-col gap-6">
+      <StickySubheader>
+        <div className="pt-8 pb-6">
+          <h1 className="font-heading text-xl font-semibold">Applications</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Jobs you&apos;ve applied to and their current status.
+          </p>
+        </div>
 
-      <div className="flex items-center gap-1 border-b">
-        {FILTERS.map((f) => {
-          const count = f.statuses
-            ? allRows.filter((r) => f.statuses.includes(r.status)).length
-            : allRows.length;
-          const isActive = activeFilter === f.key;
-          return (
-            <Link
-              key={f.key}
-              href={f.key === "all" ? "/applications" : `/applications?filter=${f.key}`}
-              className={cn(
-                "border-b-2 px-3 py-2 text-sm transition-colors",
-                isActive
-                  ? "border-foreground font-medium text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {f.label} <span className="text-xs text-muted-foreground">({count})</span>
-            </Link>
-          );
-        })}
-      </div>
+        <div className="flex items-center gap-1 border-b">
+          {FILTERS.map((f) => {
+            const count = f.statuses
+              ? allRows.filter((r) => f.statuses.includes(r.status)).length
+              : allRows.length;
+            const isActive = activeFilter === f.key;
+            return (
+              <Link
+                key={f.key}
+                href={f.key === "all" ? "/applications" : `/applications?filter=${f.key}`}
+                className={cn(
+                  "border-b-2 px-3 py-2 text-sm transition-colors",
+                  isActive
+                    ? "border-foreground font-medium text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {f.label} <span className="text-xs text-muted-foreground">({count})</span>
+              </Link>
+            );
+          })}
+        </div>
+      </StickySubheader>
 
       {rows.length === 0 ? (
         <p className="text-sm text-muted-foreground">
@@ -245,9 +248,12 @@ export default async function ApplicationsPage({
             : "No applications match this filter."}
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-lg border">
+        <div className="overflow-x-auto overflow-y-visible rounded-lg border">
           <Table className="table-fixed">
-            <TableHeader>
+            <TableHeader
+              className="sticky z-20 bg-background"
+              style={{ top: "var(--applications-header-bottom, 200px)" }}
+            >
               <TableRow>
                 <TableHead className="w-[14%] px-3">
                   <SortableHeader
