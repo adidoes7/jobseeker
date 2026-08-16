@@ -73,6 +73,16 @@ export async function updateStatus(applicationId: string, status: Status) {
   revalidatePath("/applications");
 }
 
+export async function deleteApplication(applicationId: string) {
+  const user = await requireUser();
+
+  await db
+    .delete(applications)
+    .where(and(eq(applications.id, applicationId), eq(applications.userId, user.id)));
+
+  revalidatePath("/applications");
+}
+
 export async function addTimelineEvent(applicationId: string, formData: FormData) {
   const user = await requireUser();
 

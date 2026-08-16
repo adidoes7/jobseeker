@@ -11,6 +11,8 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { formatLocationShort } from "@/lib/format-location";
+import { ApplicationRowActions } from "./application-row-actions";
 import {
   Table,
   TableBody,
@@ -19,6 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ArrowUpIcon, ArrowDownIcon, ArrowUpDownIcon } from "lucide-react";
 
 const FILTERS = [
   { key: "all", label: "All", statuses: null },
@@ -40,12 +43,105 @@ function formatSalary(min: number | null, max: number | null, currency: string |
   return currency ? `${range} ${currency}` : range;
 }
 
+type SortKey = "company" | "role" | "salary" | "fitScore" | "applied";
+
+type Application = Awaited<ReturnType<typeof loadApplications>>[number];
+
+async function loadApplications(userId: string) {
+  return db.query.applications.findMany({
+    where: and(
+      eq(applications.userId, userId),
+      notInArray(applications.status, [...OPPORTUNITY_STATUSES])
+    ),
+    with: { company: true },
+  });
+}
+
+function getSortColumns(): {
+  key: SortKey;
+  label: string;
+  defaultDir: "asc" | "desc";
+  value: (a: Application) => string | number | null;
+}[] {
+  return [
+    { key: "company", label: "Company", defaultDir: "asc", value: (a) => a.company.name.toLowerCase() },
+    { key: "role", label: "Role", defaultDir: "asc", value: (a) => a.title.toLowerCase() },
+    { key: "salary", label: "Salary", defaultDir: "desc", value: (a) => a.salaryMax ?? a.salaryMin },
+    { key: "fitScore", label: "Fit score", defaultDir: "desc", value: (a) => a.fitScore },
+    {
+      key: "applied",
+      label: "Applied",
+      defaultDir: "desc",
+      value: (a) => (a.appliedAt ? new Date(a.appliedAt).getTime() : null),
+    },
+  ];
+}
+
+function sortApplications(rows: Application[], sort: SortKey | null, dir: "asc" | "desc") {
+  if (!sort) return rows;
+  const column = getSortColumns().find((c) => c.key === sort);
+  if (!column) return rows;
+
+  return [...rows].sort((a, b) => {
+    const av = column.value(a);
+    const bv = column.value(b);
+    if (av === null && bv === null) return 0;
+    if (av === null) return 1;
+    if (bv === null) return -1;
+    if (av < bv) return dir === "asc" ? -1 : 1;
+    if (av > bv) return dir === "asc" ? 1 : -1;
+    return 0;
+  });
+}
+
+function SortableHeader({
+  column,
+  activeSort,
+  activeDir,
+  filter,
+}: {
+  column: ReturnType<typeof getSortColumns>[number];
+  activeSort: SortKey | null;
+  activeDir: "asc" | "desc";
+  filter: string;
+}) {
+  const isActive = activeSort === column.key;
+  const nextDir = isActive ? (activeDir === "asc" ? "desc" : "asc") : column.defaultDir;
+
+  const params = new URLSearchParams();
+  if (filter !== "all") params.set("filter", filter);
+  params.set("sort", column.key);
+  params.set("dir", nextDir);
+
+  return (
+    <Link
+      href={`/applications?${params.toString()}`}
+      className="inline-flex items-center gap-1 hover:text-foreground"
+    >
+      {column.label}
+      {isActive ? (
+        activeDir === "asc" ? (
+          <ArrowUpIcon className="size-3.5" />
+        ) : (
+          <ArrowDownIcon className="size-3.5" />
+        )
+      ) : (
+        <ArrowUpDownIcon className="size-3.5 text-muted-foreground/50" />
+      )}
+    </Link>
+  );
+}
+
 export default async function ApplicationsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string }>;
+  searchParams: Promise<{ filter?: string; sort?: string; dir?: string }>;
 }) {
-  const { filter: activeFilter = "all" } = await searchParams;
+  const {
+    filter: activeFilter = "all",
+    sort: sortParam,
+    dir: dirParam,
+  } = await searchParams;
 
   const supabase = await createClient();
   const {
@@ -53,17 +149,25 @@ export default async function ApplicationsPage({
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const allRows = await db.query.applications.findMany({
-    where: and(
-      eq(applications.userId, user.id),
-      notInArray(applications.status, [...OPPORTUNITY_STATUSES])
-    ),
-    with: { company: true },
-    orderBy: (applications, { desc }) => [desc(applications.appliedAt)],
-  });
+  const allRows = await loadApplications(user.id);
 
   const activeStatuses = FILTERS.find((f) => f.key === activeFilter)?.statuses ?? null;
-  const rows = activeStatuses ? allRows.filter((r) => activeStatuses.includes(r.status)) : allRows;
+  const filteredRows = activeStatuses
+    ? allRows.filter((r) => activeStatuses.includes(r.status))
+    : allRows;
+
+  const sortColumns = getSortColumns();
+  const sortColumnsByKey = Object.fromEntries(sortColumns.map((c) => [c.key, c])) as Record<
+    SortKey,
+    (typeof sortColumns)[number]
+  >;
+  const activeSort = sortColumns.find((c) => c.key === sortParam)?.key ?? null;
+  const activeDir: "asc" | "desc" = dirParam === "asc" || dirParam === "desc" ? dirParam : "desc";
+  const rows = activeSort
+    ? sortApplications(filteredRows, activeSort, activeDir)
+    : [...filteredRows].sort(
+        (a, b) => (b.appliedAt ? new Date(b.appliedAt).getTime() : 0) - (a.appliedAt ? new Date(a.appliedAt).getTime() : 0)
+      );
 
   return (
     <div className="flex flex-col gap-6">
@@ -104,44 +208,89 @@ export default async function ApplicationsPage({
             : "No applications match this filter."}
         </p>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto rounded-lg border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Company</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Location</TableHead>
-                <TableHead>Work type</TableHead>
-                <TableHead>Salary</TableHead>
-                <TableHead>Fit score</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Applied</TableHead>
+                <TableHead className="px-3">
+                  <SortableHeader
+                    column={sortColumnsByKey.company}
+                    activeSort={activeSort}
+                    activeDir={activeDir}
+                    filter={activeFilter}
+                  />
+                </TableHead>
+                <TableHead className="px-3">
+                  <SortableHeader
+                    column={sortColumnsByKey.role}
+                    activeSort={activeSort}
+                    activeDir={activeDir}
+                    filter={activeFilter}
+                  />
+                </TableHead>
+                <TableHead className="px-3">Location</TableHead>
+                <TableHead className="px-3">Work type</TableHead>
+                <TableHead className="px-3">
+                  <SortableHeader
+                    column={sortColumnsByKey.salary}
+                    activeSort={activeSort}
+                    activeDir={activeDir}
+                    filter={activeFilter}
+                  />
+                </TableHead>
+                <TableHead className="px-3">
+                  <SortableHeader
+                    column={sortColumnsByKey.fitScore}
+                    activeSort={activeSort}
+                    activeDir={activeDir}
+                    filter={activeFilter}
+                  />
+                </TableHead>
+                <TableHead className="px-3">Status</TableHead>
+                <TableHead className="px-3">
+                  <SortableHeader
+                    column={sortColumnsByKey.applied}
+                    activeSort={activeSort}
+                    activeDir={activeDir}
+                    filter={activeFilter}
+                  />
+                </TableHead>
+                <TableHead className="px-3" />
               </TableRow>
             </TableHeader>
             <TableBody>
               {rows.map((app) => (
-                <TableRow key={app.id}>
-                  <TableCell className="font-medium">
+                <TableRow key={app.id} className="h-16">
+                  <TableCell className="px-3 py-3 font-medium">
                     <Link href={`/applications/${app.id}`} className="hover:underline">
                       {app.company.name}
                     </Link>
                   </TableCell>
-                  <TableCell>{app.title}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {app.location ?? "—"}
+                  <TableCell className="px-3 py-3">{app.title}</TableCell>
+                  <TableCell className="px-3 py-3 text-muted-foreground">
+                    {formatLocationShort(app.location)}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
+                  <TableCell className="px-3 py-3 text-muted-foreground">
                     {REMOTE_STATUS_LABEL[app.remoteStatus ?? "unknown"]}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
+                  <TableCell className="px-3 py-3 text-muted-foreground">
                     {formatSalary(app.salaryMin, app.salaryMax, app.salaryCurrency)}
                   </TableCell>
-                  <TableCell>{app.fitScore !== null ? `${app.fitScore}%` : "—"}</TableCell>
-                  <TableCell>
+                  <TableCell className="px-3 py-3">
+                    {app.fitScore !== null ? `${app.fitScore}%` : "—"}
+                  </TableCell>
+                  <TableCell className="px-3 py-3">
                     <Badge variant="secondary">{app.status.replace(/_/g, " ")}</Badge>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="px-3 py-3">
                     {app.appliedAt ? new Date(app.appliedAt).toLocaleDateString() : "—"}
+                  </TableCell>
+                  <TableCell className="px-3 py-3">
+                    <ApplicationRowActions
+                      applicationId={app.id}
+                      companyName={app.company.name}
+                      status={app.status}
+                    />
                   </TableCell>
                 </TableRow>
               ))}

@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const PIPELINE_STATUSES = [
+export const PIPELINE_STATUSES = [
   "applied",
   "recruiter_screening",
   "first_interview",
