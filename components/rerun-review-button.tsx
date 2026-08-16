@@ -6,7 +6,13 @@ import { runFitReviewAction } from "@/app/(app)/opportunities/actions";
 import { Button } from "@/components/ui/button";
 import { Loader2Icon, RefreshCwIcon } from "lucide-react";
 
-export function RerunReviewButton({ applicationId }: { applicationId: string }) {
+export function RerunReviewButton({
+  applicationId,
+  profileReady,
+}: {
+  applicationId: string;
+  profileReady: boolean;
+}) {
   const router = useRouter();
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +32,18 @@ export function RerunReviewButton({ applicationId }: { applicationId: string }) 
 
   return (
     <div className="flex flex-col items-start gap-1">
-      <Button type="button" variant="outline" size="sm" disabled={running} onClick={handleClick}>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        disabled={running || !profileReady}
+        onClick={handleClick}
+        title={
+          !profileReady
+            ? "Add skills to your Career Profile (upload/extract a CV) to enable this"
+            : undefined
+        }
+      >
         {running ? (
           <Loader2Icon className="size-3.5 animate-spin" />
         ) : (

@@ -67,12 +67,18 @@ export function ApplicationRowActions({
           }
         />
         <DropdownMenuContent align="end">
-          {profileReady && (
-            <DropdownMenuItem disabled={isPending} onClick={handleRerun}>
-              <RefreshCwIcon className="size-3.5" />
-              Re-run AI review
-            </DropdownMenuItem>
-          )}
+          <DropdownMenuItem
+            disabled={isPending || !profileReady}
+            onClick={handleRerun}
+            title={
+              !profileReady
+                ? "Add skills to your Career Profile (upload/extract a CV) to enable this"
+                : undefined
+            }
+          >
+            <RefreshCwIcon className="size-3.5" />
+            Re-run AI review
+          </DropdownMenuItem>
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>Change status</DropdownMenuSubTrigger>
             <DropdownMenuSubContent>

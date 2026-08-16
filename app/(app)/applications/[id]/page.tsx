@@ -78,7 +78,7 @@ export default async function ApplicationDetailPage({
               fitScore={application.fitScore}
               recommendation={application.fitRecommendation}
             />
-            {profileReady && <RerunReviewButton applicationId={application.id} />}
+            <RerunReviewButton applicationId={application.id} profileReady={profileReady} />
           </div>
           {application.fitSummary && <p>{application.fitSummary}</p>}
           {review && <RequirementMatrix rows={review.requirementMatrix} />}

@@ -96,7 +96,7 @@ export default async function OpportunityDetailPage({
                   fitScore={application.fitScore}
                   recommendation={application.fitRecommendation}
                 />
-                {profileReady && <RerunReviewButton applicationId={application.id} />}
+                <RerunReviewButton applicationId={application.id} profileReady={profileReady} />
               </div>
               {application.fitSummary && <p className="text-sm">{application.fitSummary}</p>}
 
