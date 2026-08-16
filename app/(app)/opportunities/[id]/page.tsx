@@ -37,7 +37,7 @@ export default async function OpportunityDetailPage({
   if (!application) notFound();
 
   const review = application.fitReview;
-  const profileReady = isProfileReadyForReview(profile, userCvs.length);
+  const profileReady = isProfileReadyForReview(profile);
 
   return (
     <div className="flex flex-col gap-6">

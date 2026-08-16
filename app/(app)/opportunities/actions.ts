@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { eq, and, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { applications, companies, cvs, profiles, timelineEvents } from "@/lib/db/schema";
+import { applications, companies, profiles, timelineEvents } from "@/lib/db/schema";
 import { createClient } from "@/lib/supabase/server";
 import { opportunitySchema } from "@/lib/validation/schemas";
 import {
@@ -141,16 +141,15 @@ export async function skipOpportunity(id: string) {
 export async function runFitReviewAction(applicationId: string) {
   const user = await requireUser();
 
-  const [application, profile, userCvs] = await Promise.all([
+  const [application, profile] = await Promise.all([
     db.query.applications.findFirst({
       where: and(eq(applications.id, applicationId), eq(applications.userId, user.id)),
       with: { company: true },
     }),
     db.query.profiles.findFirst({ where: eq(profiles.userId, user.id) }),
-    db.query.cvs.findMany({ where: eq(cvs.userId, user.id), columns: { id: true } }),
   ]);
   if (!application || !profile) throw new Error("Not found");
-  if (!isProfileReadyForReview(profile, userCvs.length)) {
+  if (!isProfileReadyForReview(profile)) {
     throw new Error("Profile is not ready for review");
   }
 

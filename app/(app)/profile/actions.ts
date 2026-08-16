@@ -87,17 +87,31 @@ export async function registerCv(input: {
     columns: { id: true },
   });
 
-  await db.insert(cvs).values({
-    userId: user.id,
-    name: input.name,
-    storagePath: input.storagePath,
-    fileName: input.fileName,
-    mimeType: input.mimeType,
-    sizeBytes: input.sizeBytes,
-    isDefault: existing.length === 0,
-  });
+  const [cv] = await db
+    .insert(cvs)
+    .values({
+      userId: user.id,
+      name: input.name,
+      storagePath: input.storagePath,
+      fileName: input.fileName,
+      mimeType: input.mimeType,
+      sizeBytes: input.sizeBytes,
+      isDefault: existing.length === 0,
+    })
+    .returning({ id: cvs.id });
 
   revalidatePath("/profile");
+
+  try {
+    const extracted = await extractCvSkillsForCv(cv.id, user.id);
+    return { cvId: cv.id, extracted, extractionError: null };
+  } catch (err) {
+    return {
+      cvId: cv.id,
+      extracted: null,
+      extractionError: err instanceof Error ? err.message : "Extraction failed",
+    };
+  }
 }
 
 export async function setDefaultCv(cvId: string) {
@@ -117,11 +131,9 @@ export async function setDefaultCv(cvId: string) {
   revalidatePath("/profile");
 }
 
-export async function extractCvSkillsAction(cvId: string) {
-  const user = await requireUser();
-
+async function extractCvSkillsForCv(cvId: string, userId: string) {
   const cv = await db.query.cvs.findFirst({
-    where: and(eq(cvs.id, cvId), eq(cvs.userId, user.id)),
+    where: and(eq(cvs.id, cvId), eq(cvs.userId, userId)),
   });
   if (!cv) throw new Error("CV not found");
 
@@ -141,7 +153,13 @@ export async function extractCvSkillsAction(cvId: string) {
       experienceSummary: extracted.experienceSummary,
       updatedAt: new Date(),
     })
-    .where(eq(profiles.userId, user.id));
+    .where(eq(profiles.userId, userId));
 
   revalidatePath("/profile");
+  return extracted;
+}
+
+export async function extractCvSkillsAction(cvId: string) {
+  const user = await requireUser();
+  return extractCvSkillsForCv(cvId, user.id);
 }

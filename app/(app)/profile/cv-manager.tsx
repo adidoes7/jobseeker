@@ -15,6 +15,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Loader2Icon, CheckCircle2Icon } from "lucide-react";
 
 type Cv = {
   id: string;
@@ -23,13 +32,38 @@ type Cv = {
   isDefault: boolean;
 };
 
+type FlowStep = "uploading" | "analyzing" | "success" | "error";
+
+type FlowState = {
+  step: FlowStep;
+  skills?: string[];
+  experienceSummary?: string | null;
+  error?: string;
+  retry?: () => void;
+};
+
 export function CvManager({ cvs }: { cvs: Cv[] }) {
   const [name, setName] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [extractingId, setExtractingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [flow, setFlow] = useState<FlowState | null>(null);
+
+  const processing = flow?.step === "uploading" || flow?.step === "analyzing";
+
+  async function runAnalysis(cvId: string) {
+    setFlow({ step: "analyzing" });
+    try {
+      const extracted = await extractCvSkillsAction(cvId);
+      setFlow({ step: "success", skills: extracted.skills, experienceSummary: extracted.experienceSummary });
+    } catch (err) {
+      setFlow({
+        step: "error",
+        error: err instanceof Error ? err.message : "Couldn't read that CV",
+        retry: () => runAnalysis(cvId),
+      });
+    }
+  }
 
   async function handleUpload(e: React.FormEvent) {
     e.preventDefault();
@@ -48,7 +82,7 @@ export function CvManager({ cvs }: { cvs: Cv[] }) {
       return;
     }
 
-    setUploading(true);
+    setFlow({ step: "uploading" });
     try {
       const supabase = createClient();
       const {
@@ -62,7 +96,8 @@ export function CvManager({ cvs }: { cvs: Cv[] }) {
       });
       if (uploadError) throw uploadError;
 
-      await registerCv({
+      setFlow({ step: "analyzing" });
+      const result = await registerCv({
         name: name.trim() || file.name,
         storagePath: path,
         fileName: file.name,
@@ -72,10 +107,23 @@ export function CvManager({ cvs }: { cvs: Cv[] }) {
 
       setName("");
       if (fileInputRef.current) fileInputRef.current.value = "";
+
+      if (result.extracted) {
+        setFlow({
+          step: "success",
+          skills: result.extracted.skills,
+          experienceSummary: result.extracted.experienceSummary,
+        });
+      } else {
+        setFlow({
+          step: "error",
+          error: result.extractionError ?? "Couldn't read that CV",
+          retry: () => runAnalysis(result.cvId),
+        });
+      }
     } catch (err) {
+      setFlow(null);
       setError(err instanceof Error ? err.message : "Upload failed");
-    } finally {
-      setUploading(false);
     }
   }
 
@@ -110,7 +158,7 @@ export function CvManager({ cvs }: { cvs: Cv[] }) {
                       type="button"
                       variant="outline"
                       size="sm"
-                      disabled={isPending}
+                      disabled={isPending || processing}
                       onClick={() => startTransition(() => setDefaultCv(cv.id))}
                     >
                       Set as default
@@ -120,17 +168,10 @@ export function CvManager({ cvs }: { cvs: Cv[] }) {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    disabled={extractingId === cv.id}
-                    onClick={async () => {
-                      setExtractingId(cv.id);
-                      try {
-                        await extractCvSkillsAction(cv.id);
-                      } finally {
-                        setExtractingId(null);
-                      }
-                    }}
+                    disabled={processing}
+                    onClick={() => runAnalysis(cv.id)}
                   >
-                    {extractingId === cv.id ? "Extracting…" : "Extract skills"}
+                    Re-analyze
                   </Button>
                 </div>
               </li>
@@ -152,11 +193,100 @@ export function CvManager({ cvs }: { cvs: Cv[] }) {
             <Label htmlFor="cv-file">PDF file</Label>
             <Input id="cv-file" type="file" accept="application/pdf" ref={fileInputRef} />
           </div>
-          <Button type="submit" disabled={uploading}>
-            {uploading ? "Uploading…" : "Upload"}
+          <Button type="submit" disabled={processing}>
+            {flow?.step === "uploading" ? "Uploading…" : "Upload"}
           </Button>
         </form>
       </CardContent>
+
+      <Dialog
+        open={flow !== null}
+        onOpenChange={(open) => {
+          if (!open && !processing) setFlow(null);
+        }}
+      >
+        <DialogContent showCloseButton={!processing}>
+          {(flow?.step === "uploading" || flow?.step === "analyzing") && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Loader2Icon className="size-4 animate-spin" />
+                  {flow.step === "uploading" ? "Uploading your CV…" : "Reading your CV…"}
+                </DialogTitle>
+                <DialogDescription>
+                  {flow.step === "uploading"
+                    ? "Storing your file securely."
+                    : "Pulling out your skills and experience — this powers your AI fit scores, so it's worth the wait."}
+                </DialogDescription>
+              </DialogHeader>
+            </>
+          )}
+
+          {flow?.step === "success" && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <CheckCircle2Icon className="size-4 text-primary" />
+                  Got it — here&apos;s what we found
+                </DialogTitle>
+                <DialogDescription>
+                  This is now saved to your profile and used to score job matches. You can edit it anytime below.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex flex-col gap-3">
+                <div>
+                  <p className="mb-1.5 text-xs font-medium text-muted-foreground">Skills</p>
+                  {flow.skills && flow.skills.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {flow.skills.map((skill) => (
+                        <Badge key={skill} variant="secondary">
+                          {skill}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No skills found in this CV.</p>
+                  )}
+                </div>
+                {flow.experienceSummary && (
+                  <div>
+                    <p className="mb-1.5 text-xs font-medium text-muted-foreground">Experience summary</p>
+                    <p className="text-sm">{flow.experienceSummary}</p>
+                  </div>
+                )}
+              </div>
+              <DialogFooter>
+                <Button type="button" onClick={() => setFlow(null)}>
+                  Done
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+
+          {flow?.step === "error" && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Couldn&apos;t analyze this CV</DialogTitle>
+                <DialogDescription>
+                  Your file was saved, but we weren&apos;t able to read skills from it yet. Job fit scores won&apos;t
+                  work until this succeeds.
+                </DialogDescription>
+              </DialogHeader>
+              <Alert variant="destructive">
+                <AlertDescription>{flow.error}</AlertDescription>
+              </Alert>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setFlow(null)}>
+                  Close
+                </Button>
+                <Button type="button" onClick={() => flow.retry?.()}>
+                  Retry
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
