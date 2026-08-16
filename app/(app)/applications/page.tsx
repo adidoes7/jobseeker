@@ -104,6 +104,15 @@ function getSortColumns(): {
   ];
 }
 
+// Postgres doesn't guarantee row order without an ORDER BY, and it can shift
+// a row's physical position on UPDATE — so ties on the sort column (e.g. many
+// rows applied the same day, with no time component) need a deterministic
+// tiebreaker or the list visibly reshuffles after an unrelated edit.
+function tiebreak(a: Application, b: Application) {
+  const byCompany = a.company.name.toLowerCase().localeCompare(b.company.name.toLowerCase());
+  return byCompany !== 0 ? byCompany : a.id.localeCompare(b.id);
+}
+
 function sortApplications(rows: Application[], sort: SortKey | null, dir: "asc" | "desc") {
   if (!sort) return rows;
   const column = getSortColumns().find((c) => c.key === sort);
@@ -112,12 +121,12 @@ function sortApplications(rows: Application[], sort: SortKey | null, dir: "asc" 
   return [...rows].sort((a, b) => {
     const av = column.value(a);
     const bv = column.value(b);
-    if (av === null && bv === null) return 0;
+    if (av === null && bv === null) return tiebreak(a, b);
     if (av === null) return 1;
     if (bv === null) return -1;
     if (av < bv) return dir === "asc" ? -1 : 1;
     if (av > bv) return dir === "asc" ? 1 : -1;
-    return 0;
+    return tiebreak(a, b);
   });
 }
 
@@ -194,11 +203,8 @@ export default async function ApplicationsPage({
   >;
   const activeSort = sortColumns.find((c) => c.key === sortParam)?.key ?? null;
   const activeDir: "asc" | "desc" = dirParam === "asc" || dirParam === "desc" ? dirParam : "desc";
-  const rows = activeSort
-    ? sortApplications(filteredRows, activeSort, activeDir)
-    : [...filteredRows].sort(
-        (a, b) => (b.appliedAt ? new Date(b.appliedAt).getTime() : 0) - (a.appliedAt ? new Date(a.appliedAt).getTime() : 0)
-      );
+  // Defaults to newest-applied-first when no explicit sort is chosen.
+  const rows = sortApplications(filteredRows, activeSort ?? "applied", activeDir);
 
   return (
     <div className="flex flex-col gap-6">

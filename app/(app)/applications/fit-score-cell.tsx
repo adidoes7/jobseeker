@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { runFitReviewAction } from "../opportunities/actions";
 import { FitScoreBadge, RECOMMENDATION_LABEL } from "@/components/fit-score-badge";
 import { Button } from "@/components/ui/button";
-import { CheckIcon, RefreshCwIcon, Loader2Icon } from "lucide-react";
+import { PlayIcon, RefreshCwIcon, Loader2Icon } from "lucide-react";
 
 export function FitScoreCell({
   applicationId,
@@ -52,7 +52,7 @@ export function FitScoreCell({
   ) : fitScore !== null ? (
     <RefreshCwIcon />
   ) : (
-    <CheckIcon />
+    <PlayIcon />
   );
 
   if (fitScore !== null) {
