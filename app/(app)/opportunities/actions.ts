@@ -206,4 +206,6 @@ export async function runFitReviewAction(applicationId: string) {
   revalidatePath(`/applications/${applicationId}`);
   revalidatePath("/opportunities");
   revalidatePath("/applications");
+
+  return { fitScore: review.fitScore, recommendation: review.recommendation };
 }

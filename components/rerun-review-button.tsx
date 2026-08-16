@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { runFitReviewAction } from "@/app/(app)/opportunities/actions";
+import { RECOMMENDATION_LABEL } from "@/components/fit-score-badge";
 import { Button } from "@/components/ui/button";
 import { Loader2Icon, RefreshCwIcon } from "lucide-react";
 
@@ -15,43 +17,46 @@ export function RerunReviewButton({
 }) {
   const router = useRouter();
   const [running, setRunning] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   async function handleClick() {
     setRunning(true);
-    setError(null);
     try {
-      await runFitReviewAction(applicationId);
-      router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't re-run the review");
+      await toast.promise(
+        runFitReviewAction(applicationId).then((result) => {
+          router.refresh();
+          return result;
+        }),
+        {
+          loading: "Re-running AI review…",
+          success: (result) =>
+            `Fit score updated: ${result.fitScore}% (${RECOMMENDATION_LABEL[result.recommendation] ?? result.recommendation})`,
+          error: (err) => (err instanceof Error ? err.message : "Couldn't re-run the review"),
+        }
+      );
     } finally {
       setRunning(false);
     }
   }
 
   return (
-    <div className="flex flex-col items-start gap-1">
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        disabled={running || !profileReady}
-        onClick={handleClick}
-        title={
-          !profileReady
-            ? "Add skills to your Career Profile (upload/extract a CV) to enable this"
-            : undefined
-        }
-      >
-        {running ? (
-          <Loader2Icon className="size-3.5 animate-spin" />
-        ) : (
-          <RefreshCwIcon className="size-3.5" />
-        )}
-        {running ? "Re-running…" : "Re-run review"}
-      </Button>
-      {error && <p className="text-xs text-destructive">{error}</p>}
-    </div>
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      disabled={running || !profileReady}
+      onClick={handleClick}
+      title={
+        !profileReady
+          ? "Add skills to your Career Profile (upload/extract a CV) to enable this"
+          : undefined
+      }
+    >
+      {running ? (
+        <Loader2Icon className="size-3.5 animate-spin" />
+      ) : (
+        <RefreshCwIcon className="size-3.5" />
+      )}
+      {running ? "Re-running…" : "Re-run review"}
+    </Button>
   );
 }

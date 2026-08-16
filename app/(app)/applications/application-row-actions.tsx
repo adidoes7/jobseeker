@@ -2,9 +2,11 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { updateStatus, deleteApplication } from "./actions";
 import { runFitReviewAction } from "../opportunities/actions";
 import { PIPELINE_STATUSES } from "./[id]/status-changer";
+import { RECOMMENDATION_LABEL } from "@/components/fit-score-badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -24,7 +26,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { MoreHorizontalIcon, CheckIcon, RefreshCwIcon } from "lucide-react";
 
 export function ApplicationRowActions({
@@ -41,17 +42,21 @@ export function ApplicationRowActions({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [rerunError, setRerunError] = useState<string | null>(null);
 
   function handleRerun() {
-    setRerunError(null);
-    startTransition(async () => {
-      try {
-        await runFitReviewAction(applicationId);
-        router.refresh();
-      } catch (err) {
-        setRerunError(err instanceof Error ? err.message : "Couldn't re-run the review");
-      }
+    startTransition(() => {
+      toast.promise(
+        runFitReviewAction(applicationId).then((result) => {
+          router.refresh();
+          return result;
+        }),
+        {
+          loading: `Re-running AI review for ${companyName}…`,
+          success: (result) =>
+            `Fit score updated: ${result.fitScore}% (${RECOMMENDATION_LABEL[result.recommendation] ?? result.recommendation})`,
+          error: (err) => (err instanceof Error ? err.message : "Couldn't re-run the review"),
+        }
+      );
     });
   }
 
@@ -79,6 +84,7 @@ export function ApplicationRowActions({
             <RefreshCwIcon className="size-3.5" />
             Re-run AI review
           </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>Change status</DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
@@ -126,22 +132,6 @@ export function ApplicationRowActions({
               }
             >
               {isPending ? "Deleting…" : "Delete"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={rerunError !== null} onOpenChange={(open) => !open && setRerunError(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Couldn&apos;t re-run the review</DialogTitle>
-          </DialogHeader>
-          <Alert variant="destructive">
-            <AlertDescription>{rerunError}</AlertDescription>
-          </Alert>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setRerunError(null)}>
-              Close
             </Button>
           </DialogFooter>
         </DialogContent>

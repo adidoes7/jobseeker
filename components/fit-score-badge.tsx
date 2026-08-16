@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-const RECOMMENDATION_LABEL: Record<string, string> = {
+export const RECOMMENDATION_LABEL: Record<string, string> = {
   strong_apply: "Strong Apply",
   apply: "Apply",
   consider: "Consider",
