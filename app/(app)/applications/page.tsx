@@ -10,6 +10,7 @@ import {
 } from "@/lib/db/schema";
 import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
+import { FitScoreBadge } from "@/components/fit-score-badge";
 import { cn } from "@/lib/utils";
 import { formatLocationShort } from "@/lib/format-location";
 import { ApplicationRowActions } from "./application-row-actions";
@@ -35,6 +36,20 @@ const REMOTE_STATUS_LABEL: Record<string, string> = {
   hybrid: "Hybrid",
   onsite: "Onsite",
   unknown: "—",
+};
+
+const STATUS_COLOR: Record<string, string> = {
+  applied: "bg-sky-500/15 text-sky-700 dark:text-sky-400",
+  recruiter_screening: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
+  first_interview: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
+  interview_process: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
+  assignment_case_study: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
+  final_interview: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
+  offer: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
+  rejected: "bg-destructive/15 text-destructive",
+  withdrawn: "bg-muted text-muted-foreground",
+  ghosted: "bg-muted text-muted-foreground",
+  position_closed: "bg-muted text-muted-foreground",
 };
 
 function formatSalary(min: number | null, max: number | null, currency: string | null) {
@@ -281,11 +296,20 @@ export default async function ApplicationsPage({
                   <TableCell className="truncate px-3 py-3 text-muted-foreground">
                     {formatSalary(app.salaryMin, app.salaryMax, app.salaryCurrency)}
                   </TableCell>
-                  <TableCell className="truncate px-3 py-3">
-                    {app.fitScore !== null ? `${app.fitScore}%` : "—"}
+                  <TableCell className="px-3 py-3">
+                    <FitScoreBadge
+                      fitScore={app.fitScore}
+                      recommendation={app.fitRecommendation}
+                      compact
+                    />
                   </TableCell>
                   <TableCell className="truncate px-3 py-3">
-                    <Badge variant="secondary">{app.status.replace(/_/g, " ")}</Badge>
+                    <Badge
+                      variant="secondary"
+                      className={cn(STATUS_COLOR[app.status] ?? "")}
+                    >
+                      {app.status.replace(/_/g, " ")}
+                    </Badge>
                   </TableCell>
                   <TableCell className="truncate px-3 py-3">
                     {app.appliedAt ? new Date(app.appliedAt).toLocaleDateString() : "—"}
