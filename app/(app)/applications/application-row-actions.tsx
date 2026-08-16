@@ -1,12 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 import { updateStatus, deleteApplication } from "./actions";
-import { runFitReviewAction } from "../opportunities/actions";
 import { PIPELINE_STATUSES } from "./[id]/status-changer";
-import { RECOMMENDATION_LABEL } from "@/components/fit-score-badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -26,39 +22,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { MoreHorizontalIcon, CheckIcon, RefreshCwIcon } from "lucide-react";
+import { MoreHorizontalIcon, CheckIcon } from "lucide-react";
 
 export function ApplicationRowActions({
   applicationId,
   companyName,
   status,
-  profileReady,
 }: {
   applicationId: string;
   companyName: string;
   status: string;
-  profileReady: boolean;
 }) {
-  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [confirmOpen, setConfirmOpen] = useState(false);
-
-  function handleRerun() {
-    startTransition(() => {
-      toast.promise(
-        runFitReviewAction(applicationId).then((result) => {
-          router.refresh();
-          return result;
-        }),
-        {
-          loading: `Re-running AI review for ${companyName}…`,
-          success: (result) =>
-            `Fit score updated: ${result.fitScore}% (${RECOMMENDATION_LABEL[result.recommendation] ?? result.recommendation})`,
-          error: (err) => (err instanceof Error ? err.message : "Couldn't re-run the review"),
-        }
-      );
-    });
-  }
 
   return (
     <>
@@ -72,19 +48,6 @@ export function ApplicationRowActions({
           }
         />
         <DropdownMenuContent align="end">
-          <DropdownMenuItem
-            disabled={isPending || !profileReady}
-            onClick={handleRerun}
-            title={
-              !profileReady
-                ? "Add skills to your Career Profile (upload/extract a CV) to enable this"
-                : undefined
-            }
-          >
-            <RefreshCwIcon className="size-3.5" />
-            Re-run AI review
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>Change status</DropdownMenuSubTrigger>
             <DropdownMenuSubContent>

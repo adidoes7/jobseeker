@@ -11,11 +11,11 @@ import {
 } from "@/lib/db/schema";
 import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
-import { FitScoreBadge } from "@/components/fit-score-badge";
 import { cn } from "@/lib/utils";
 import { formatLocationShort } from "@/lib/format-location";
 import { isProfileReadyForReview } from "@/lib/profile-readiness";
 import { ApplicationRowActions } from "./application-row-actions";
+import { FitScoreCell } from "./fit-score-cell";
 import {
   Table,
   TableBody,
@@ -308,7 +308,10 @@ export default async function ApplicationsPage({
                   >
                     {formatLocationShort(app.location)}
                   </TableCell>
-                  <TableCell className="truncate px-3 py-3 text-muted-foreground">
+                  <TableCell
+                    className="truncate px-3 py-3 text-muted-foreground"
+                    title={REMOTE_STATUS_LABEL[app.remoteStatus ?? "unknown"]}
+                  >
                     {REMOTE_STATUS_LABEL[app.remoteStatus ?? "unknown"]}
                   </TableCell>
                   <TableCell
@@ -323,17 +326,22 @@ export default async function ApplicationsPage({
                   >
                     {app.sourceDetail ?? SOURCE_LABEL[app.source ?? "other"]}
                   </TableCell>
-                  <TableCell className="truncate px-3 py-3 text-muted-foreground">
+                  <TableCell
+                    className="truncate px-3 py-3 text-muted-foreground"
+                    title={formatSalary(app.salaryMin, app.salaryMax, app.salaryCurrency)}
+                  >
                     {formatSalary(app.salaryMin, app.salaryMax, app.salaryCurrency)}
                   </TableCell>
                   <TableCell className="px-3 py-3">
-                    <FitScoreBadge
+                    <FitScoreCell
+                      applicationId={app.id}
+                      companyName={app.company.name}
                       fitScore={app.fitScore}
-                      recommendation={app.fitRecommendation}
-                      compact
+                      fitRecommendation={app.fitRecommendation}
+                      profileReady={profileReady}
                     />
                   </TableCell>
-                  <TableCell className="truncate px-3 py-3">
+                  <TableCell className="truncate px-3 py-3" title={app.status.replace(/_/g, " ")}>
                     <Badge
                       variant="secondary"
                       className={cn(STATUS_COLOR[app.status] ?? "")}
@@ -341,7 +349,10 @@ export default async function ApplicationsPage({
                       {app.status.replace(/_/g, " ")}
                     </Badge>
                   </TableCell>
-                  <TableCell className="truncate px-3 py-3">
+                  <TableCell
+                    className="truncate px-3 py-3"
+                    title={app.appliedAt ? new Date(app.appliedAt).toLocaleDateString() : undefined}
+                  >
                     {app.appliedAt ? new Date(app.appliedAt).toLocaleDateString() : "—"}
                   </TableCell>
                   <TableCell className="px-3 py-3">
@@ -349,7 +360,6 @@ export default async function ApplicationsPage({
                       applicationId={app.id}
                       companyName={app.company.name}
                       status={app.status}
-                      profileReady={profileReady}
                     />
                   </TableCell>
                 </TableRow>
