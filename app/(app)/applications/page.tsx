@@ -209,10 +209,10 @@ export default async function ApplicationsPage({
         </p>
       ) : (
         <div className="overflow-x-auto rounded-lg border">
-          <Table>
+          <Table className="table-fixed">
             <TableHeader>
               <TableRow>
-                <TableHead className="px-3">
+                <TableHead className="w-[16%] px-3">
                   <SortableHeader
                     column={sortColumnsByKey.company}
                     activeSort={activeSort}
@@ -220,7 +220,7 @@ export default async function ApplicationsPage({
                     filter={activeFilter}
                   />
                 </TableHead>
-                <TableHead className="px-3">
+                <TableHead className="w-[18%] px-3">
                   <SortableHeader
                     column={sortColumnsByKey.role}
                     activeSort={activeSort}
@@ -228,9 +228,9 @@ export default async function ApplicationsPage({
                     filter={activeFilter}
                   />
                 </TableHead>
-                <TableHead className="px-3">Location</TableHead>
-                <TableHead className="px-3">Work type</TableHead>
-                <TableHead className="px-3">
+                <TableHead className="w-[12%] px-3">Location</TableHead>
+                <TableHead className="w-[9%] px-3">Work type</TableHead>
+                <TableHead className="w-[12%] px-3">
                   <SortableHeader
                     column={sortColumnsByKey.salary}
                     activeSort={activeSort}
@@ -238,7 +238,7 @@ export default async function ApplicationsPage({
                     filter={activeFilter}
                   />
                 </TableHead>
-                <TableHead className="px-3">
+                <TableHead className="w-[9%] px-3">
                   <SortableHeader
                     column={sortColumnsByKey.fitScore}
                     activeSort={activeSort}
@@ -246,8 +246,8 @@ export default async function ApplicationsPage({
                     filter={activeFilter}
                   />
                 </TableHead>
-                <TableHead className="px-3">Status</TableHead>
-                <TableHead className="px-3">
+                <TableHead className="w-[10%] px-3">Status</TableHead>
+                <TableHead className="w-[10%] px-3">
                   <SortableHeader
                     column={sortColumnsByKey.applied}
                     activeSort={activeSort}
@@ -255,34 +255,39 @@ export default async function ApplicationsPage({
                     filter={activeFilter}
                   />
                 </TableHead>
-                <TableHead className="px-3" />
+                <TableHead className="w-[4%] px-3" />
               </TableRow>
             </TableHeader>
             <TableBody>
               {rows.map((app) => (
                 <TableRow key={app.id} className="h-16">
-                  <TableCell className="px-3 py-3 font-medium">
+                  <TableCell className="truncate px-3 py-3 font-medium" title={app.company.name}>
                     <Link href={`/applications/${app.id}`} className="hover:underline">
                       {app.company.name}
                     </Link>
                   </TableCell>
-                  <TableCell className="px-3 py-3">{app.title}</TableCell>
-                  <TableCell className="px-3 py-3 text-muted-foreground">
+                  <TableCell className="truncate px-3 py-3" title={app.title}>
+                    {app.title}
+                  </TableCell>
+                  <TableCell
+                    className="truncate px-3 py-3 text-muted-foreground"
+                    title={app.location ?? undefined}
+                  >
                     {formatLocationShort(app.location)}
                   </TableCell>
-                  <TableCell className="px-3 py-3 text-muted-foreground">
+                  <TableCell className="truncate px-3 py-3 text-muted-foreground">
                     {REMOTE_STATUS_LABEL[app.remoteStatus ?? "unknown"]}
                   </TableCell>
-                  <TableCell className="px-3 py-3 text-muted-foreground">
+                  <TableCell className="truncate px-3 py-3 text-muted-foreground">
                     {formatSalary(app.salaryMin, app.salaryMax, app.salaryCurrency)}
                   </TableCell>
-                  <TableCell className="px-3 py-3">
+                  <TableCell className="truncate px-3 py-3">
                     {app.fitScore !== null ? `${app.fitScore}%` : "—"}
                   </TableCell>
-                  <TableCell className="px-3 py-3">
+                  <TableCell className="truncate px-3 py-3">
                     <Badge variant="secondary">{app.status.replace(/_/g, " ")}</Badge>
                   </TableCell>
-                  <TableCell className="px-3 py-3">
+                  <TableCell className="truncate px-3 py-3">
                     {app.appliedAt ? new Date(app.appliedAt).toLocaleDateString() : "—"}
                   </TableCell>
                   <TableCell className="px-3 py-3">

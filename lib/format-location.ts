@@ -1,9 +1,9 @@
 const COUNTRY_CODES: Record<string, string> = {
-  "united states": "US",
-  "united states of america": "US",
-  usa: "US",
-  "u.s.": "US",
-  "u.s.a.": "US",
+  "united states": "USA",
+  "united states of america": "USA",
+  usa: "USA",
+  "u.s.": "USA",
+  "u.s.a.": "USA",
   "united kingdom": "UK",
   uk: "UK",
   "u.k.": "UK",
@@ -49,6 +49,10 @@ const COUNTRY_CODES: Record<string, string> = {
   "south africa": "ZA",
 };
 
+function resolveCode(text: string): string {
+  return COUNTRY_CODES[text.toLowerCase()] ?? (text.length <= 3 ? text.toUpperCase() : text);
+}
+
 /**
  * Job locations come from free-text AI extraction, so this is a best-effort
  * shortener for a table cell, not a real geocoder: first comma segment as
@@ -63,11 +67,14 @@ export function formatLocationShort(location: string | null): string {
     .map((p) => p.trim())
     .filter(Boolean);
   if (parts.length === 0) return location;
-  if (parts.length === 1) return parts[0];
+
+  if (parts.length === 1) {
+    const only = parts[0];
+    const known = COUNTRY_CODES[only.toLowerCase()];
+    return known ?? only;
+  }
 
   const city = parts[0];
   const rest = parts[parts.length - 1];
-  const code = COUNTRY_CODES[rest.toLowerCase()] ?? (rest.length <= 3 ? rest.toUpperCase() : rest);
-
-  return `${city} (${code})`;
+  return `${city} (${resolveCode(rest)})`;
 }
