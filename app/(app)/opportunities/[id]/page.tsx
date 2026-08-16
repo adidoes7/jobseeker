@@ -11,6 +11,7 @@ import { FitScoreBadge } from "@/components/fit-score-badge";
 import { RequirementMatrix } from "@/components/requirement-matrix";
 import { ReviewTrigger } from "./review-trigger";
 import { MarkAsAppliedButton } from "./mark-as-applied-button";
+import { RerunReviewButton } from "@/components/rerun-review-button";
 import { isProfileReadyForReview } from "@/lib/profile-readiness";
 
 export default async function OpportunityDetailPage({
@@ -90,10 +91,13 @@ export default async function OpportunityDetailPage({
 
           {application.fitReviewedAt && (
             <>
-              <FitScoreBadge
-                fitScore={application.fitScore}
-                recommendation={application.fitRecommendation}
-              />
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <FitScoreBadge
+                  fitScore={application.fitScore}
+                  recommendation={application.fitRecommendation}
+                />
+                {profileReady && <RerunReviewButton applicationId={application.id} />}
+              </div>
               {application.fitSummary && <p className="text-sm">{application.fitSummary}</p>}
 
               {review && (

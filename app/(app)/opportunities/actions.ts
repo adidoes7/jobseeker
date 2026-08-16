@@ -203,4 +203,7 @@ export async function runFitReviewAction(applicationId: string) {
     .where(eq(applications.id, applicationId));
 
   revalidatePath(`/opportunities/${applicationId}`);
+  revalidatePath(`/applications/${applicationId}`);
+  revalidatePath("/opportunities");
+  revalidatePath("/applications");
 }

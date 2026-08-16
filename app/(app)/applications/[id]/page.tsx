@@ -2,12 +2,14 @@ import { eq, and } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { applications } from "@/lib/db/schema";
+import { applications, profiles } from "@/lib/db/schema";
 import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FitScoreBadge } from "@/components/fit-score-badge";
 import { RequirementMatrix } from "@/components/requirement-matrix";
+import { RerunReviewButton } from "@/components/rerun-review-button";
+import { isProfileReadyForReview } from "@/lib/profile-readiness";
 import { StatusChanger } from "./status-changer";
 import { Timeline } from "./timeline";
 
@@ -24,13 +26,17 @@ export default async function ApplicationDetailPage({
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const application = await db.query.applications.findFirst({
-    where: and(eq(applications.id, id), eq(applications.userId, user.id)),
-    with: { company: true, cv: true, timelineEvents: true },
-  });
+  const [application, profile] = await Promise.all([
+    db.query.applications.findFirst({
+      where: and(eq(applications.id, id), eq(applications.userId, user.id)),
+      with: { company: true, cv: true, timelineEvents: true },
+    }),
+    db.query.profiles.findFirst({ where: eq(profiles.userId, user.id) }),
+  ]);
   if (!application) notFound();
 
   const review = application.fitReview;
+  const profileReady = isProfileReadyForReview(profile);
 
   return (
     <div className="flex flex-col gap-6">
@@ -67,10 +73,13 @@ export default async function ApplicationDetailPage({
           <CardTitle>Overview</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4 text-sm">
-          <FitScoreBadge
-            fitScore={application.fitScore}
-            recommendation={application.fitRecommendation}
-          />
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <FitScoreBadge
+              fitScore={application.fitScore}
+              recommendation={application.fitRecommendation}
+            />
+            {profileReady && <RerunReviewButton applicationId={application.id} />}
+          </div>
           {application.fitSummary && <p>{application.fitSummary}</p>}
           {review && <RequirementMatrix rows={review.requirementMatrix} />}
           {(application.salaryMin || application.salaryMax) && (
