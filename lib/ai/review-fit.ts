@@ -30,6 +30,7 @@ export type FitReviewProfileInput = {
   skills: string[];
   experienceSummary: string | null;
   portfolioUrl: string | null;
+  portfolioCaseStudies: { label: string; url: string }[];
 };
 
 const SYSTEM_PROMPT = `You review a job posting against a candidate's career profile and produce a fit assessment.

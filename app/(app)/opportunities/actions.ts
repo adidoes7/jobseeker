@@ -181,6 +181,7 @@ export async function runFitReviewAction(applicationId: string) {
       skills: profile.skills ?? [],
       experienceSummary: profile.experienceSummary,
       portfolioUrl: profile.portfolioUrl,
+      portfolioCaseStudies: profile.portfolioCaseStudies ?? [],
     }
   );
 
