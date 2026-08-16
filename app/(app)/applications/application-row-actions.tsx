@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { updateStatus, deleteApplication } from "./actions";
+import { runFitReviewAction } from "../opportunities/actions";
 import { PIPELINE_STATUSES } from "./[id]/status-changer";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,19 +24,36 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { MoreHorizontalIcon, CheckIcon } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { MoreHorizontalIcon, CheckIcon, RefreshCwIcon } from "lucide-react";
 
 export function ApplicationRowActions({
   applicationId,
   companyName,
   status,
+  profileReady,
 }: {
   applicationId: string;
   companyName: string;
   status: string;
+  profileReady: boolean;
 }) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [rerunError, setRerunError] = useState<string | null>(null);
+
+  function handleRerun() {
+    setRerunError(null);
+    startTransition(async () => {
+      try {
+        await runFitReviewAction(applicationId);
+        router.refresh();
+      } catch (err) {
+        setRerunError(err instanceof Error ? err.message : "Couldn't re-run the review");
+      }
+    });
+  }
 
   return (
     <>
@@ -48,6 +67,12 @@ export function ApplicationRowActions({
           }
         />
         <DropdownMenuContent align="end">
+          {profileReady && (
+            <DropdownMenuItem disabled={isPending} onClick={handleRerun}>
+              <RefreshCwIcon className="size-3.5" />
+              Re-run AI review
+            </DropdownMenuItem>
+          )}
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>Change status</DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
@@ -95,6 +120,22 @@ export function ApplicationRowActions({
               }
             >
               {isPending ? "Deleting…" : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={rerunError !== null} onOpenChange={(open) => !open && setRerunError(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Couldn&apos;t re-run the review</DialogTitle>
+          </DialogHeader>
+          <Alert variant="destructive">
+            <AlertDescription>{rerunError}</AlertDescription>
+          </Alert>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setRerunError(null)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

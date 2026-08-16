@@ -3,6 +3,7 @@ import { and, eq, notInArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   applications,
+  profiles,
   OPPORTUNITY_STATUSES,
   APPLIED_STATUSES,
   PROCEEDED_STATUSES,
@@ -13,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { FitScoreBadge } from "@/components/fit-score-badge";
 import { cn } from "@/lib/utils";
 import { formatLocationShort } from "@/lib/format-location";
+import { isProfileReadyForReview } from "@/lib/profile-readiness";
 import { ApplicationRowActions } from "./application-row-actions";
 import {
   Table,
@@ -164,7 +166,11 @@ export default async function ApplicationsPage({
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const allRows = await loadApplications(user.id);
+  const [allRows, profile] = await Promise.all([
+    loadApplications(user.id),
+    db.query.profiles.findFirst({ where: eq(profiles.userId, user.id) }),
+  ]);
+  const profileReady = isProfileReadyForReview(profile);
 
   const activeStatuses = FILTERS.find((f) => f.key === activeFilter)?.statuses ?? null;
   const filteredRows = activeStatuses
@@ -319,6 +325,7 @@ export default async function ApplicationsPage({
                       applicationId={app.id}
                       companyName={app.company.name}
                       status={app.status}
+                      profileReady={profileReady}
                     />
                   </TableCell>
                 </TableRow>
