@@ -22,6 +22,7 @@ export const PIPELINE_STATUSES = [
   "rejected",
   "withdrawn",
   "ghosted",
+  "abandoned",
   "position_closed",
 ] as const;
 

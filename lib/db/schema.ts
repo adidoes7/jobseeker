@@ -52,6 +52,7 @@ export const applicationStatusEnum = pgEnum("application_status", [
   "rejected",
   "withdrawn",
   "ghosted",
+  "abandoned",
   "position_closed",
 ]);
 
@@ -190,6 +191,9 @@ export const applications = pgTable("applications", {
   jobUrl: text("job_url"),
   applicationUrl: text("application_url"),
   source: applicationSourceEnum("source").default("other"),
+  sourceDetail: text("source_detail"),
+  externalJobId: text("external_job_id"),
+  employmentType: text("employment_type"),
 
   // Status spans pre-apply -> post-apply -> terminal
   status: applicationStatusEnum("status").default("new").notNull(),
@@ -221,6 +225,29 @@ export const applications = pgTable("applications", {
     .default([]),
   salaryDiscussed: text("salary_discussed"),
   notes: text("notes"),
+
+  // Imported external tracking data (e.g. a manually-kept spreadsheet/tracker).
+  // Kept separate from fitScore/fitReview above, which are this app's own
+  // AI-generated review on a 0-100 scale — imported fit data may use a
+  // different rubric/scale entirely, so it's not conflated with it.
+  fitBreakdown: jsonb("fit_breakdown").$type<Record<string, number | null>>(),
+  compensationDetail: jsonb("compensation_detail").$type<{
+    employerPublished: boolean | null;
+    min: number | null;
+    max: number | null;
+    currency: string | null;
+    period: string | null;
+    grossNet: string | null;
+    equity: boolean | null;
+    bonus: string | null;
+    text: string | null;
+    candidateExpectation: Record<string, unknown> | null;
+    thirdPartyEstimate: Record<string, unknown> | null;
+  }>(),
+  rejectionDate: timestamp("rejection_date", { withTimezone: true }),
+  rejectionReasonCategory: text("rejection_reason_category"),
+  rejectionReason: text("rejection_reason"),
+  importNotes: jsonb("import_notes").$type<string[]>().default([]),
 
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
@@ -367,5 +394,6 @@ export const REJECTED_STATUSES = [
   "rejected",
   "withdrawn",
   "ghosted",
+  "abandoned",
   "position_closed",
 ] as const;

@@ -40,6 +40,15 @@ const REMOTE_STATUS_LABEL: Record<string, string> = {
   unknown: "—",
 };
 
+const SOURCE_LABEL: Record<string, string> = {
+  linkedin: "LinkedIn",
+  company_website: "Company site",
+  referral: "Referral",
+  indeed: "Indeed",
+  recruiter: "Recruiter",
+  other: "Other",
+};
+
 const STATUS_COLOR: Record<string, string> = {
   applied: "bg-sky-500/15 text-sky-700 dark:text-sky-400",
   recruiter_screening: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
@@ -51,6 +60,7 @@ const STATUS_COLOR: Record<string, string> = {
   rejected: "bg-destructive/15 text-destructive",
   withdrawn: "bg-muted text-muted-foreground",
   ghosted: "bg-muted text-muted-foreground",
+  abandoned: "bg-muted text-muted-foreground",
   position_closed: "bg-muted text-muted-foreground",
 };
 
@@ -233,7 +243,7 @@ export default async function ApplicationsPage({
           <Table className="table-fixed">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[16%] px-3">
+                <TableHead className="w-[14%] px-3">
                   <SortableHeader
                     column={sortColumnsByKey.company}
                     activeSort={activeSort}
@@ -241,7 +251,7 @@ export default async function ApplicationsPage({
                     filter={activeFilter}
                   />
                 </TableHead>
-                <TableHead className="w-[18%] px-3">
+                <TableHead className="w-[15%] px-3">
                   <SortableHeader
                     column={sortColumnsByKey.role}
                     activeSort={activeSort}
@@ -249,9 +259,11 @@ export default async function ApplicationsPage({
                     filter={activeFilter}
                   />
                 </TableHead>
-                <TableHead className="w-[12%] px-3">Location</TableHead>
-                <TableHead className="w-[9%] px-3">Work type</TableHead>
-                <TableHead className="w-[12%] px-3">
+                <TableHead className="w-[10%] px-3">Location</TableHead>
+                <TableHead className="w-[7%] px-3">Work type</TableHead>
+                <TableHead className="w-[9%] px-3">Employment</TableHead>
+                <TableHead className="w-[8%] px-3">Source</TableHead>
+                <TableHead className="w-[10%] px-3">
                   <SortableHeader
                     column={sortColumnsByKey.salary}
                     activeSort={activeSort}
@@ -259,7 +271,7 @@ export default async function ApplicationsPage({
                     filter={activeFilter}
                   />
                 </TableHead>
-                <TableHead className="w-[9%] px-3">
+                <TableHead className="w-[7%] px-3">
                   <SortableHeader
                     column={sortColumnsByKey.fitScore}
                     activeSort={activeSort}
@@ -267,8 +279,8 @@ export default async function ApplicationsPage({
                     filter={activeFilter}
                   />
                 </TableHead>
-                <TableHead className="w-[10%] px-3">Status</TableHead>
-                <TableHead className="w-[10%] px-3">
+                <TableHead className="w-[8%] px-3">Status</TableHead>
+                <TableHead className="w-[8%] px-3">
                   <SortableHeader
                     column={sortColumnsByKey.applied}
                     activeSort={activeSort}
@@ -298,6 +310,18 @@ export default async function ApplicationsPage({
                   </TableCell>
                   <TableCell className="truncate px-3 py-3 text-muted-foreground">
                     {REMOTE_STATUS_LABEL[app.remoteStatus ?? "unknown"]}
+                  </TableCell>
+                  <TableCell
+                    className="truncate px-3 py-3 text-muted-foreground"
+                    title={app.employmentType ?? undefined}
+                  >
+                    {app.employmentType ?? "—"}
+                  </TableCell>
+                  <TableCell
+                    className="truncate px-3 py-3 text-muted-foreground"
+                    title={app.sourceDetail ?? undefined}
+                  >
+                    {app.sourceDetail ?? SOURCE_LABEL[app.source ?? "other"]}
                   </TableCell>
                   <TableCell className="truncate px-3 py-3 text-muted-foreground">
                     {formatSalary(app.salaryMin, app.salaryMax, app.salaryCurrency)}
