@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { and, eq, notInArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
@@ -17,6 +18,7 @@ import { isProfileReadyForReview } from "@/lib/profile-readiness";
 import { ApplicationRowActions } from "./application-row-actions";
 import { FitScoreCell } from "./fit-score-cell";
 import { StickySubheader } from "./sticky-subheader";
+import { SearchBox } from "./search-box";
 import {
   Table,
   TableBody,
@@ -169,15 +171,30 @@ function SortableHeader({
   );
 }
 
+function matchesQuery(app: Application, query: string): boolean {
+  const haystack = [
+    app.company.name,
+    app.title,
+    app.location,
+    app.employmentType,
+    app.sourceDetail,
+  ]
+    .filter((v): v is string => Boolean(v))
+    .join(" ")
+    .toLowerCase();
+  return haystack.includes(query.toLowerCase());
+}
+
 export default async function ApplicationsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string; sort?: string; dir?: string }>;
+  searchParams: Promise<{ filter?: string; sort?: string; dir?: string; q?: string }>;
 }) {
   const {
     filter: activeFilter = "all",
     sort: sortParam,
     dir: dirParam,
+    q: query = "",
   } = await searchParams;
 
   const supabase = await createClient();
@@ -193,9 +210,12 @@ export default async function ApplicationsPage({
   const profileReady = isProfileReadyForReview(profile);
 
   const activeStatuses = FILTERS.find((f) => f.key === activeFilter)?.statuses ?? null;
-  const filteredRows = activeStatuses
+  const statusFilteredRows = activeStatuses
     ? allRows.filter((r) => activeStatuses.includes(r.status))
     : allRows;
+  const filteredRows = query.trim()
+    ? statusFilteredRows.filter((r) => matchesQuery(r, query.trim()))
+    : statusFilteredRows;
 
   const sortColumns = getSortColumns();
   const sortColumnsByKey = Object.fromEntries(sortColumns.map((c) => [c.key, c])) as Record<
@@ -217,27 +237,32 @@ export default async function ApplicationsPage({
           </p>
         </div>
 
-        <div className="flex items-center gap-1 border-b">
-          {FILTERS.map((f) => {
-            const count = f.statuses
-              ? allRows.filter((r) => f.statuses.includes(r.status)).length
-              : allRows.length;
-            const isActive = activeFilter === f.key;
-            return (
-              <Link
-                key={f.key}
-                href={f.key === "all" ? "/applications" : `/applications?filter=${f.key}`}
-                className={cn(
-                  "border-b-2 px-3 py-2 text-sm transition-colors",
-                  isActive
-                    ? "border-foreground font-medium text-foreground"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {f.label} <span className="text-xs text-muted-foreground">({count})</span>
-              </Link>
-            );
-          })}
+        <div className="flex items-center justify-between gap-4 border-b">
+          <div className="flex items-center gap-1">
+            {FILTERS.map((f) => {
+              const count = f.statuses
+                ? allRows.filter((r) => f.statuses.includes(r.status)).length
+                : allRows.length;
+              const isActive = activeFilter === f.key;
+              return (
+                <Link
+                  key={f.key}
+                  href={f.key === "all" ? "/applications" : `/applications?filter=${f.key}`}
+                  className={cn(
+                    "border-b-2 px-3 py-2 text-sm transition-colors",
+                    isActive
+                      ? "border-foreground font-medium text-foreground"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {f.label} <span className="text-xs text-muted-foreground">({count})</span>
+                </Link>
+              );
+            })}
+          </div>
+          <Suspense fallback={<div className="h-8 w-64" />}>
+            <SearchBox />
+          </Suspense>
         </div>
       </StickySubheader>
 
@@ -245,7 +270,9 @@ export default async function ApplicationsPage({
         <p className="text-sm text-muted-foreground">
           {allRows.length === 0
             ? "No applications yet. Mark an opportunity as applied to see it here."
-            : "No applications match this filter."}
+            : query.trim()
+              ? `No applications match "${query.trim()}".`
+              : "No applications match this filter."}
         </p>
       ) : (
         <>
