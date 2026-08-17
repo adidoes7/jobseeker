@@ -248,8 +248,8 @@ export default async function ApplicationsPage({
             : "No applications match this filter."}
         </p>
       ) : (
-        <div className="overflow-x-auto overflow-y-visible rounded-lg border">
-          <Table className="table-fixed">
+        <>
+          <Table className="table-fixed" containerClassName="overflow-x-visible overflow-y-visible rounded-lg border">
             <TableHeader
               className="sticky z-20 bg-background"
               style={{ top: "var(--applications-header-bottom, 200px)" }}
@@ -378,7 +378,7 @@ export default async function ApplicationsPage({
               ))}
             </TableBody>
           </Table>
-        </div>
+        </>
       )}
     </div>
   );
