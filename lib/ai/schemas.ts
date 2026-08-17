@@ -36,26 +36,83 @@ const matchItemSchema = z.object({
   evidence: z.string(),
 });
 
+export const matchLevelEnumSchema = z.enum(["strong", "partial", "gap", "unknown"]);
+export type MatchLevel = z.infer<typeof matchLevelEnumSchema>;
+
+export const requirementMatrixRowSchema = z.object({
+  requirement: z.string(),
+  matchLevel: matchLevelEnumSchema,
+  evidence: z.string(),
+});
+
+export const recommendationEnumSchema = z.enum([
+  "strong_apply",
+  "apply",
+  "consider",
+  "low_priority",
+  "skip",
+]);
+export type Recommendation = z.infer<typeof recommendationEnumSchema>;
+
+// The assembled result of the fit-review pipeline (see review-fit.ts) —
+// not parsed directly from a single Claude call anymore, but built in code
+// from the requirements/evidence-matching/scoring/explanation stages.
 export const FitReviewSchema = z.object({
   fitScore: z.number().int().min(0).max(100),
-  recommendation: z.enum([
-    "strong_apply",
-    "apply",
-    "consider",
-    "low_priority",
-    "skip",
-  ]),
+  recommendation: recommendationEnumSchema,
   summary: z.string(),
   strongMatches: z.array(matchItemSchema),
   partialMatches: z.array(matchItemSchema),
   gaps: z.array(matchItemSchema),
   unknown: z.array(matchItemSchema),
-  requirementMatrix: z.array(
-    z.object({
-      requirement: z.string(),
-      matchLevel: z.enum(["strong", "partial", "gap", "unknown"]),
-      evidence: z.string(),
-    })
-  ),
+  requirementMatrix: z.array(requirementMatrixRowSchema),
 });
 export type FitReview = z.infer<typeof FitReviewSchema>;
+
+// ---------- Stage 2: structured job requirements ----------
+export const requirementTypeSchema = z.enum([
+  "skill",
+  "experience",
+  "domain",
+  "seniority",
+  "location",
+  "work_authorization",
+  "salary",
+  "other",
+]);
+
+export const requirementImportanceSchema = z.enum(["required", "preferred"]);
+
+export const RequirementSchema = z.object({
+  id: z.string(),
+  text: z.string(),
+  type: requirementTypeSchema,
+  importance: requirementImportanceSchema,
+});
+export type Requirement = z.infer<typeof RequirementSchema>;
+
+export const RequirementsExtractionSchema = z.object({
+  requirements: z.array(RequirementSchema),
+});
+
+// ---------- Stage 3: evidence matching ----------
+export const matchBasisSchema = z.enum(["direct", "transferable", "inferred"]);
+export type MatchBasis = z.infer<typeof matchBasisSchema>;
+
+export const EvidenceMatchSchema = z.object({
+  requirementId: z.string(),
+  matchLevel: matchLevelEnumSchema,
+  matchBasis: matchBasisSchema.nullable(),
+  evidence: z.string(),
+  confidence: z.number().min(0).max(1),
+});
+export type EvidenceMatch = z.infer<typeof EvidenceMatchSchema>;
+
+export const EvidenceMatchingSchema = z.object({
+  matches: z.array(EvidenceMatchSchema),
+});
+
+// ---------- Stage 5: explanation ----------
+export const FitExplanationSchema = z.object({
+  summary: z.string(),
+});

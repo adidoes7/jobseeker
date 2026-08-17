@@ -182,12 +182,14 @@ export async function runFitReviewAction(applicationId: string) {
       experienceSummary: profile.experienceSummary,
       portfolioUrl: profile.portfolioUrl,
       portfolioCaseStudies: profile.portfolioCaseStudies ?? [],
-    }
+    },
+    application.structuredRequirements ?? undefined
   );
 
   await db
     .update(applications)
     .set({
+      structuredRequirements: review.requirements,
       fitScore: review.fitScore,
       fitRecommendation: review.recommendation,
       fitSummary: review.summary,

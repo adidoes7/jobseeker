@@ -198,7 +198,27 @@ export const applications = pgTable("applications", {
   // Status spans pre-apply -> post-apply -> terminal
   status: applicationStatusEnum("status").default("new").notNull(),
 
-  // AI Job Review
+  // AI Job Review — fitScore/fitRecommendation are computed by the
+  // deterministic scoring rules in lib/scoring/fit-score.ts, not asked of
+  // the model directly. structuredRequirements caches stage 2 of that
+  // pipeline (candidate-independent), so re-running a review only re-does
+  // evidence matching + explanation, not requirement extraction.
+  structuredRequirements: jsonb("structured_requirements").$type<
+    {
+      id: string;
+      text: string;
+      type:
+        | "skill"
+        | "experience"
+        | "domain"
+        | "seniority"
+        | "location"
+        | "work_authorization"
+        | "salary"
+        | "other";
+      importance: "required" | "preferred";
+    }[]
+  >(),
   fitScore: integer("fit_score"),
   fitRecommendation: recommendationEnum("fit_recommendation"),
   fitSummary: text("fit_summary"),

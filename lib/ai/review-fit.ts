@@ -1,6 +1,8 @@
-import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
-import { anthropic, MODEL } from "./client";
-import { FitReviewSchema, type FitReview } from "./schemas";
+import { extractRequirements } from "./extract-requirements";
+import { matchEvidence } from "./match-evidence";
+import { explainFit } from "./explain-fit";
+import { computeFitScore } from "@/lib/scoring/fit-score";
+import type { Requirement, MatchLevel, Recommendation } from "./schemas";
 
 export type FitReviewJobInput = {
   title: string;
@@ -33,44 +35,66 @@ export type FitReviewProfileInput = {
   portfolioCaseStudies: { label: string; url: string }[];
 };
 
-const SYSTEM_PROMPT = `You review a job posting against a candidate's career profile and produce a fit assessment.
+export type FitReviewOutcome = {
+  requirements: Requirement[];
+  fitScore: number;
+  recommendation: Recommendation;
+  summary: string;
+  strongMatches: { requirement: string; evidence: string }[];
+  partialMatches: { requirement: string; evidence: string }[];
+  gaps: { requirement: string; evidence: string }[];
+  unknown: { requirement: string; evidence: string }[];
+  requirementMatrix: { requirement: string; matchLevel: MatchLevel; evidence: string }[];
+};
 
-Do not simply count matching keywords. Weigh:
-- Relevant experience and role seniority
-- Required vs preferred skills
-- Domain experience, product type, B2B/B2C, SaaS experience
-- Location and work authorization compatibility
-- Salary alignment
-- Portfolio relevance
-- Preferred working conditions
-
-Classify every distinct requirement you can identify from the job into exactly one of: a strong match (clearly supported by the candidate's background), a partial match (related experience exists but doesn't fully meet the requirement), a gap (requirement appears unmet), or unknown (cannot be determined from the available information). Populate the requirement matrix with one row per requirement you evaluated.
-
-Give one overall recommendation — strong_apply, apply, consider, low_priority, or skip — with a short (2-3 sentence) explanation grounded in the specific matches and gaps.`;
-
+/**
+ * Fit review pipeline: extraction, matching, and explanation are Claude's
+ * job (understanding fuzzy natural language); the actual score is not — it's
+ * computed by a fixed, inspectable formula in lib/scoring/fit-score.ts, so
+ * the same requirements + evidence always produce the same score, and tuning
+ * it means editing a weight there instead of re-wording a prompt.
+ *
+ * Requirement extraction (stage 2) is candidate-independent, so pass
+ * `cachedRequirements` (persisted per job on first run) to skip re-running it.
+ */
 export async function runFitReview(
   job: FitReviewJobInput,
-  profile: FitReviewProfileInput
-): Promise<FitReview> {
-  const response = await anthropic.messages.parse({
-    model: MODEL,
-    max_tokens: 4096,
-    thinking: { type: "adaptive" },
-    output_config: {
-      format: zodOutputFormat(FitReviewSchema),
-      effort: "medium",
-    },
-    system: SYSTEM_PROMPT,
-    messages: [
-      {
-        role: "user",
-        content: `## Job\n${JSON.stringify(job, null, 2)}\n\n## Candidate Career Profile\n${JSON.stringify(profile, null, 2)}`,
-      },
-    ],
+  profile: FitReviewProfileInput,
+  cachedRequirements?: Requirement[]
+): Promise<FitReviewOutcome> {
+  const requirements =
+    cachedRequirements && cachedRequirements.length > 0
+      ? cachedRequirements
+      : await extractRequirements(job);
+
+  const matches = await matchEvidence(profile, requirements);
+  const { score, recommendation } = computeFitScore(requirements, matches);
+  const summary = await explainFit(job, requirements, matches, score, recommendation);
+
+  const matchById = new Map(matches.map((m) => [m.requirementId, m]));
+  const requirementMatrix = requirements.map((req) => {
+    const match = matchById.get(req.id);
+    return {
+      requirement: req.text,
+      matchLevel: match?.matchLevel ?? ("unknown" as const),
+      evidence: match?.evidence ?? "No evidence found in candidate profile.",
+    };
   });
 
-  if (!response.parsed_output) {
-    throw new Error("Failed to generate fit review");
-  }
-  return response.parsed_output;
+  const groupBy = (level: MatchLevel) =>
+    requirementMatrix
+      .filter((r) => r.matchLevel === level)
+      .map(({ requirement, evidence }) => ({ requirement, evidence }));
+
+  return {
+    requirements,
+    fitScore: score,
+    recommendation,
+    summary,
+    strongMatches: groupBy("strong"),
+    partialMatches: groupBy("partial"),
+    gaps: groupBy("gap"),
+    unknown: groupBy("unknown"),
+    requirementMatrix,
+  };
 }
