@@ -224,8 +224,10 @@ export default async function ApplicationsPage({
   >;
   const activeSort = sortColumns.find((c) => c.key === sortParam)?.key ?? null;
   const activeDir: "asc" | "desc" = dirParam === "asc" || dirParam === "desc" ? dirParam : "desc";
-  // Defaults to newest-applied-first when no explicit sort is chosen.
-  const rows = sortApplications(filteredRows, activeSort ?? "applied", activeDir);
+  // Defaults to highest-fit-score-first when no explicit sort is chosen;
+  // not-yet-scored rows sort to the bottom regardless (see tiebreak/null
+  // handling in sortApplications).
+  const rows = sortApplications(filteredRows, activeSort ?? "fitScore", activeDir);
 
   return (
     <div className="-mt-8 flex flex-col gap-6">
