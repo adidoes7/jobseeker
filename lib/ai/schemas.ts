@@ -83,11 +83,16 @@ export const requirementTypeSchema = z.enum([
 
 export const requirementImportanceSchema = z.enum(["required", "preferred"]);
 
+// Occasionally the model reaches for a synonym outside these two-value
+// enums (e.g. "nice-to-have", "strongly-preferred") despite the schema —
+// .catch() means one stray field degrades to a safe default instead of
+// failing the whole review. Importance falls back to the less-punishing
+// "preferred"; type/matchLevel/matchBasis fall back to their neutral value.
 export const RequirementSchema = z.object({
   id: z.string(),
   text: z.string(),
-  type: requirementTypeSchema,
-  importance: requirementImportanceSchema,
+  type: requirementTypeSchema.catch("other"),
+  importance: requirementImportanceSchema.catch("preferred"),
 });
 export type Requirement = z.infer<typeof RequirementSchema>;
 
@@ -101,10 +106,10 @@ export type MatchBasis = z.infer<typeof matchBasisSchema>;
 
 export const EvidenceMatchSchema = z.object({
   requirementId: z.string(),
-  matchLevel: matchLevelEnumSchema,
-  matchBasis: matchBasisSchema.nullable(),
+  matchLevel: matchLevelEnumSchema.catch("unknown"),
+  matchBasis: matchBasisSchema.nullable().catch(null),
   evidence: z.string(),
-  confidence: z.number().min(0).max(1),
+  confidence: z.number().min(0).max(1).catch(0.5),
 });
 export type EvidenceMatch = z.infer<typeof EvidenceMatchSchema>;
 
