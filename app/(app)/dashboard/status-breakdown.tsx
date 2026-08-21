@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 export type StatusSegment = {
   label: string;
@@ -21,16 +22,17 @@ export function StatusBreakdown({ segments, total }: { segments: StatusSegment[]
 
   return (
     <div className="flex flex-col gap-4">
-      <div
-        className="flex h-6 w-full overflow-hidden rounded-[4px]"
-        style={{ backgroundColor: "var(--viz-surface)" }}
-      >
+      <div className="flex h-6 w-full" style={{ backgroundColor: "var(--viz-surface)" }}>
         {segments.map((s, i) => {
           const pct = Math.round((s.count / total) * 100);
           return (
             <div
               key={s.label}
-              className="relative"
+              className={cn(
+                "relative h-6",
+                i === 0 && "rounded-l-[4px]",
+                i === segments.length - 1 && "rounded-r-[4px]"
+              )}
               style={{
                 width: `${(s.count / total) * 100}%`,
                 backgroundColor: s.color,
