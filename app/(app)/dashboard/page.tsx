@@ -12,6 +12,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { StatTile } from "./stat-tile";
 import { HorizontalBarChart, type BarDatum } from "./horizontal-bar-chart";
+import { AddOpportunityDialog } from "../opportunities/add-opportunity-dialog";
 
 const INTERVIEWING_STATUSES = [
   "recruiter_screening",
@@ -67,13 +68,14 @@ export default async function DashboardPage() {
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
 
-  const upcomingEvents = await db
+  const upcomingEventsRaw = await db
     .select({
       id: timelineEvents.id,
       applicationId: timelineEvents.applicationId,
       title: timelineEvents.title,
       eventType: timelineEvents.eventType,
       eventDate: timelineEvents.eventDate,
+      createdAt: timelineEvents.createdAt,
       companyName: companies.name,
       applicationTitle: applications.title,
     })
@@ -87,8 +89,21 @@ export default async function DashboardPage() {
         gte(timelineEvents.eventDate, startOfToday)
       )
     )
-    .orderBy(asc(timelineEvents.eventDate))
-    .limit(10);
+    .orderBy(asc(timelineEvents.eventDate));
+
+  // One application can rack up several dated events if its status changed
+  // more than once (e.g. rescheduled) — only the most recently *logged* one
+  // is still relevant, so keep one row per application.
+  const latestByApplication = new Map<string, (typeof upcomingEventsRaw)[number]>();
+  for (const event of upcomingEventsRaw) {
+    const existing = latestByApplication.get(event.applicationId);
+    if (!existing || event.createdAt > existing.createdAt) {
+      latestByApplication.set(event.applicationId, event);
+    }
+  }
+  const upcomingEvents = [...latestByApplication.values()]
+    .sort((a, b) => a.eventDate.getTime() - b.eventDate.getTime())
+    .slice(0, 10);
 
   // ---- KPIs ----
   const total = allApplications.length;
@@ -127,6 +142,15 @@ export default async function DashboardPage() {
   ];
 
   // ---- Fit score vs outcome ----
+  // Rejections get split by whether the recorded reason was actually about
+  // fit at all — a location/visa-only rejection says nothing about whether
+  // the fit score was right, and blending it into "Rejected" muddies the
+  // one comparison this chart exists to make.
+  const LOGISTICS_KEYWORDS = ["location", "work_authorization", "visa", "sponsorship"];
+  const isLogisticsRejection = (a: (typeof allApplications)[number]) =>
+    a.status === "rejected" &&
+    LOGISTICS_KEYWORDS.some((kw) => (a.rejectionReasonCategory ?? "").toLowerCase().includes(kw));
+
   const OUTCOME_BUCKETS = [
     {
       label: "Offer",
@@ -139,14 +163,19 @@ export default async function DashboardPage() {
       match: (a: (typeof allApplications)[number]) => INTERVIEWING_STATUSES.includes(a.status),
     },
     {
-      label: "Rejected / closed",
+      label: "Rejected (fit)",
       color: "var(--viz-critical)",
       match: (a: (typeof allApplications)[number]) =>
-        (REJECTED_STATUSES as readonly string[]).includes(a.status),
+        (REJECTED_STATUSES as readonly string[]).includes(a.status) && !isLogisticsRejection(a),
+    },
+    {
+      label: "Rejected (location/visa)",
+      color: "var(--viz-muted)",
+      match: isLogisticsRejection,
     },
     {
       label: "Applied (pending)",
-      color: "var(--viz-muted, var(--muted-foreground))",
+      color: "var(--viz-series-1)",
       match: (a: (typeof allApplications)[number]) => a.status === "applied",
     },
   ];
@@ -191,11 +220,14 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="font-heading text-xl font-semibold">Dashboard</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          How your search is actually going, not just what&apos;s in the grid.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="font-heading text-xl font-semibold">Dashboard</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            How your search is actually going, not just what&apos;s in the grid.
+          </p>
+        </div>
+        <AddOpportunityDialog label="Check Opportunity" />
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
@@ -263,7 +295,10 @@ export default async function DashboardPage() {
         <Card>
           <CardHeader>
             <CardTitle>Fit score vs. outcome</CardTitle>
-            <CardDescription>Average AI fit score by where the application ended up.</CardDescription>
+            <CardDescription>
+              Average AI fit score per group (each bar stands alone — these aren&apos;t shares of a
+              whole, so they won&apos;t sum to 100%).
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <HorizontalBarChart data={fitByOutcome} />

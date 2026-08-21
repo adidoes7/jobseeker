@@ -3,7 +3,6 @@ import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { applications, OPPORTUNITY_STATUSES } from "@/lib/db/schema";
 import { createClient } from "@/lib/supabase/server";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -14,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { SkipButton } from "./skip-button";
+import { AddOpportunityDialog } from "./add-opportunity-dialog";
 
 export default async function OpportunitiesPage() {
   const supabase = await createClient();
@@ -40,9 +40,7 @@ export default async function OpportunitiesPage() {
             Jobs you&apos;ve discovered and are considering.
           </p>
         </div>
-        <Button render={<Link href="/opportunities/new" />} nativeButton={false}>
-          Add Opportunity
-        </Button>
+        <AddOpportunityDialog />
       </div>
 
       {opportunities.length === 0 ? (
