@@ -19,6 +19,8 @@ import { ApplicationRowActions } from "./application-row-actions";
 import { FitScoreCell } from "./fit-score-cell";
 import { StickySubheader } from "./sticky-subheader";
 import { SearchBox } from "./search-box";
+import { MobileApplicationCard } from "./mobile-application-card";
+import { REMOTE_STATUS_LABEL, SOURCE_LABEL, STATUS_COLOR, formatSalary } from "./format-helpers";
 import {
   Table,
   TableBody,
@@ -35,43 +37,6 @@ const FILTERS = [
   { key: "proceeded", label: "Proceeded", statuses: PROCEEDED_STATUSES as readonly string[] },
   { key: "rejected", label: "Rejected", statuses: REJECTED_STATUSES as readonly string[] },
 ] as const;
-
-const REMOTE_STATUS_LABEL: Record<string, string> = {
-  remote: "Remote",
-  hybrid: "Hybrid",
-  onsite: "Onsite",
-  unknown: "—",
-};
-
-const SOURCE_LABEL: Record<string, string> = {
-  linkedin: "LinkedIn",
-  company_website: "Company site",
-  referral: "Referral",
-  indeed: "Indeed",
-  recruiter: "Recruiter",
-  other: "Other",
-};
-
-const STATUS_COLOR: Record<string, string> = {
-  applied: "bg-sky-500/15 text-sky-700 dark:text-sky-400",
-  recruiter_screening: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
-  first_interview: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
-  interview_process: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
-  assignment_case_study: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
-  final_interview: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
-  offer: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
-  rejected: "bg-destructive/15 text-destructive",
-  withdrawn: "bg-muted text-muted-foreground",
-  ghosted: "bg-muted text-muted-foreground",
-  abandoned: "bg-muted text-muted-foreground",
-  position_closed: "bg-muted text-muted-foreground",
-};
-
-function formatSalary(min: number | null, max: number | null, currency: string | null) {
-  if (!min && !max) return "—";
-  const range = [min, max].filter((v): v is number => v !== null).join(" – ");
-  return currency ? `${range} ${currency}` : range;
-}
 
 type SortKey = "company" | "role" | "salary" | "fitScore" | "applied";
 
@@ -239,8 +204,8 @@ export default async function ApplicationsPage({
           </p>
         </div>
 
-        <div className="flex items-center justify-between gap-4 border-b">
-          <div className="flex items-center gap-1">
+        <div className="flex flex-col gap-3 border-b pb-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:pb-0">
+          <div className="flex items-center gap-1 overflow-x-auto">
             {FILTERS.map((f) => {
               const count = f.statuses
                 ? allRows.filter((r) => f.statuses.includes(r.status)).length
@@ -251,7 +216,7 @@ export default async function ApplicationsPage({
                   key={f.key}
                   href={f.key === "all" ? "/applications" : `/applications?filter=${f.key}`}
                   className={cn(
-                    "border-b-2 px-3 py-2 text-sm transition-colors",
+                    "border-b-2 px-3 py-2 text-sm whitespace-nowrap transition-colors",
                     isActive
                       ? "border-foreground font-medium text-foreground"
                       : "border-transparent text-muted-foreground hover:text-foreground"
@@ -262,7 +227,7 @@ export default async function ApplicationsPage({
               );
             })}
           </div>
-          <Suspense fallback={<div className="h-8 w-64" />}>
+          <Suspense fallback={<div className="h-8 w-full sm:w-[19.2rem]" />}>
             <SearchBox />
           </Suspense>
         </div>
@@ -278,7 +243,16 @@ export default async function ApplicationsPage({
         </p>
       ) : (
         <>
-          <Table className="table-fixed" containerClassName="overflow-x-visible overflow-y-visible rounded-lg border">
+          <div className="flex flex-col gap-2 md:hidden">
+            {rows.map((app) => (
+              <MobileApplicationCard key={app.id} app={app} profileReady={profileReady} />
+            ))}
+          </div>
+
+          <Table
+            className="table-fixed"
+            containerClassName="hidden overflow-x-visible overflow-y-visible rounded-lg border md:block"
+          >
             <TableHeader
               className="sticky z-20 bg-background"
               style={{ top: "var(--applications-header-bottom, 200px)" }}
