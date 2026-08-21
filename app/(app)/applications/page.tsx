@@ -205,7 +205,7 @@ export default async function ApplicationsPage({
         </div>
 
         <div className="flex flex-col gap-3 border-b pb-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:pb-0">
-          <div className="flex items-center gap-1 overflow-x-auto">
+          <div className="flex flex-wrap items-center gap-1">
             {FILTERS.map((f) => {
               const count = f.statuses
                 ? allRows.filter((r) => f.statuses.includes(r.status)).length
