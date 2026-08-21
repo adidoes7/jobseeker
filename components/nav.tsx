@@ -16,6 +16,7 @@ import {
 import { MenuIcon } from "lucide-react";
 
 const links = [
+  { href: "/dashboard", label: "Dashboard" },
   { href: "/opportunities", label: "Opportunities" },
   { href: "/applications", label: "Applications" },
   { href: "/profile", label: "Profile" },
