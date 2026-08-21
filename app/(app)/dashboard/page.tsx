@@ -12,7 +12,41 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { StatTile } from "./stat-tile";
 import { HorizontalBarChart, type BarDatum } from "./horizontal-bar-chart";
+import { StatusBreakdown, type StatusSegment } from "./status-breakdown";
 import { AddOpportunityDialog } from "../opportunities/add-opportunity-dialog";
+
+// Fixed per-status color, independent of which statuses happen to be
+// present — so "rejected" is always the same red whether or not there's
+// an "offer" this month (color follows the entity, never its rank).
+const STATUS_ORDER = [
+  "applied",
+  "recruiter_screening",
+  "first_interview",
+  "interview_process",
+  "assignment_case_study",
+  "final_interview",
+  "offer",
+  "rejected",
+  "withdrawn",
+  "ghosted",
+  "abandoned",
+  "position_closed",
+] as const;
+
+const STATUS_COLOR_MAP: Record<string, string> = {
+  applied: "var(--viz-series-1)",
+  recruiter_screening: "var(--viz-series-4)",
+  first_interview: "var(--viz-series-2)",
+  interview_process: "var(--viz-series-7)",
+  assignment_case_study: "var(--viz-series-5)",
+  final_interview: "var(--viz-series-3)",
+  offer: "var(--viz-good)",
+  rejected: "var(--viz-critical)",
+  withdrawn: "var(--viz-muted)",
+  ghosted: "var(--viz-muted)",
+  abandoned: "var(--viz-muted)",
+  position_closed: "var(--viz-muted)",
+};
 
 const INTERVIEWING_STATUSES = [
   "recruiter_screening",
@@ -113,6 +147,17 @@ export default async function DashboardPage() {
   const avgFitScore =
     scored.length > 0 ? Math.round(scored.reduce((sum, a) => sum + a.fitScore!, 0) / scored.length) : null;
   const offers = allApplications.filter((a) => a.status === "offer").length;
+
+  // ---- Status breakdown (overview graphic) ----
+  const statusCounts = new Map<string, number>();
+  for (const a of allApplications) {
+    statusCounts.set(a.status, (statusCounts.get(a.status) ?? 0) + 1);
+  }
+  const statusSegments: StatusSegment[] = STATUS_ORDER.filter((s) => statusCounts.has(s)).map((s) => ({
+    label: s.replace(/_/g, " "),
+    count: statusCounts.get(s)!,
+    color: STATUS_COLOR_MAP[s] ?? "var(--viz-muted)",
+  }));
 
   // ---- Funnel: current-status proxy, since most historical rows only have
   // a final status rather than a full per-stage history. An application
@@ -241,6 +286,16 @@ export default async function DashboardPage() {
         <StatTile label="Offers" value={String(offers)} />
         <StatTile label="Upcoming events" value={String(upcomingEvents.length)} />
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Applications by status</CardTitle>
+          <CardDescription>{total} total, broken down by current status.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <StatusBreakdown segments={statusSegments} total={total} />
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
