@@ -13,7 +13,7 @@ export function AddOpportunityDialog({ label = "Add Opportunity" }: { label?: st
       <Button type="button" onClick={() => setOpen(true)}>
         {label}
       </Button>
-      <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
+      <DialogContent className="max-h-[85vh] max-w-[calc(100%-2rem)] overflow-y-auto sm:max-w-2xl lg:max-w-4xl">
         <DialogTitle className="sr-only">Add an opportunity</DialogTitle>
         <NewOpportunityClient />
       </DialogContent>
