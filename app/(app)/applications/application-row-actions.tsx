@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { updateStatus, deleteApplication } from "./actions";
+import { deleteApplication } from "./actions";
 import { PIPELINE_STATUSES } from "./[id]/status-changer";
+import { useStatusChangeWithDate } from "./use-status-change";
+import { StatusDateDialog } from "./status-date-dialog";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -33,8 +35,15 @@ export function ApplicationRowActions({
   companyName: string;
   status: string;
 }) {
-  const [isPending, startTransition] = useTransition();
+  const [isDeletePending, startDeleteTransition] = useTransition();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const {
+    requestChange,
+    pendingStatus,
+    confirmDate,
+    cancel,
+    isPending: isStatusPending,
+  } = useStatusChangeWithDate(applicationId);
 
   return (
     <>
@@ -54,8 +63,8 @@ export function ApplicationRowActions({
               {PIPELINE_STATUSES.map((s) => (
                 <DropdownMenuItem
                   key={s}
-                  disabled={isPending || s === status}
-                  onClick={() => startTransition(() => updateStatus(applicationId, s))}
+                  disabled={isStatusPending || s === status}
+                  onClick={() => requestChange(s)}
                 >
                   {s === status && <CheckIcon className="size-3.5" />}
                   {s.replace(/_/g, " ")}
@@ -69,6 +78,13 @@ export function ApplicationRowActions({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      <StatusDateDialog
+        status={pendingStatus}
+        isPending={isStatusPending}
+        onConfirm={confirmDate}
+        onCancel={cancel}
+      />
 
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>
@@ -86,15 +102,15 @@ export function ApplicationRowActions({
             <Button
               type="button"
               variant="destructive"
-              disabled={isPending}
+              disabled={isDeletePending}
               onClick={() =>
-                startTransition(async () => {
+                startDeleteTransition(async () => {
                   await deleteApplication(applicationId);
                   setConfirmOpen(false);
                 })
               }
             >
-              {isPending ? "Deleting…" : "Delete"}
+              {isDeletePending ? "Deleting…" : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>

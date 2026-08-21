@@ -1,7 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
-import { updateStatus } from "../actions";
+import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -10,6 +9,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useStatusChangeWithDate } from "../use-status-change";
+import { StatusDateDialog } from "../status-date-dialog";
 
 export const PIPELINE_STATUSES = [
   "applied",
@@ -37,20 +38,24 @@ export function StatusChanger({
   applicationId: string;
   status: string;
 }) {
-  const [isPending, startTransition] = useTransition();
+  const [localStatus, setLocalStatus] = useState(status);
+  const { requestChange, pendingStatus, confirmDate, cancel, isPending } = useStatusChangeWithDate(
+    applicationId,
+    (newStatus) => setLocalStatus(newStatus)
+  );
 
   return (
     <div className="flex flex-col gap-1.5">
       <Label htmlFor="status">Status</Label>
       <Select
         items={STATUS_ITEMS}
-        defaultValue={status}
+        value={localStatus}
         disabled={isPending}
-        onValueChange={(value) =>
-          startTransition(() =>
-            updateStatus(applicationId, value as (typeof PIPELINE_STATUSES)[number])
-          )
-        }
+        onValueChange={(value) => {
+          if (!value) return;
+          setLocalStatus(value);
+          requestChange(value);
+        }}
       >
         <SelectTrigger id="status" className="w-48">
           <SelectValue />
@@ -63,6 +68,16 @@ export function StatusChanger({
           ))}
         </SelectContent>
       </Select>
+
+      <StatusDateDialog
+        status={pendingStatus}
+        isPending={isPending}
+        onConfirm={confirmDate}
+        onCancel={() => {
+          cancel();
+          setLocalStatus(status);
+        }}
+      />
     </div>
   );
 }

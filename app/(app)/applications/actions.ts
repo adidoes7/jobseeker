@@ -52,8 +52,23 @@ export async function markAsApplied(applicationId: string, formData: FormData) {
 const STATUS_VALUES = applicationStatusEnum.enumValues;
 type Status = (typeof STATUS_VALUES)[number];
 
-export async function updateStatus(applicationId: string, status: Status) {
+// Statuses that represent a scheduled event (an interview, a screening call,
+// a take-home assignment) rather than a plain state — the caller is prompted
+// for that event's date, which becomes the timeline entry's eventDate so it
+// can show up in the dashboard's upcoming-events widget instead of just
+// logging "changed at the moment you clicked."
+const EVENT_TYPE_BY_STATUS: Partial<Record<Status, "interview" | "assignment">> = {
+  recruiter_screening: "interview",
+  first_interview: "interview",
+  interview_process: "interview",
+  final_interview: "interview",
+  assignment_case_study: "assignment",
+};
+
+export async function updateStatus(applicationId: string, status: Status, eventDate?: Date) {
   const user = await requireUser();
+
+  const eventType = EVENT_TYPE_BY_STATUS[status] ?? "status_change";
 
   await db.transaction(async (tx) => {
     await tx
@@ -63,14 +78,16 @@ export async function updateStatus(applicationId: string, status: Status) {
 
     await tx.insert(timelineEvents).values({
       applicationId,
-      eventType: "status_change",
+      eventType,
       title: `Status changed to ${status.replace(/_/g, " ")}`,
+      eventDate: eventDate ?? new Date(),
       isAutomatic: true,
     });
   });
 
   revalidatePath(`/applications/${applicationId}`);
   revalidatePath("/applications");
+  revalidatePath("/dashboard");
 }
 
 export async function deleteApplication(applicationId: string) {
