@@ -15,8 +15,8 @@ import { StatusDateDialog } from "../status-date-dialog";
 export const PIPELINE_STATUSES = [
   "applied",
   "recruiter_screening",
-  "hr_interview",
   "first_interview",
+  "hr_interview",
   "technical_interview",
   "interview_process",
   "assignment_case_study",

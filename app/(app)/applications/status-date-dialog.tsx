@@ -15,8 +15,8 @@ import { Label } from "@/components/ui/label";
 
 const STATUS_LABEL: Record<string, string> = {
   recruiter_screening: "Recruiter screening",
-  hr_interview: "HR interview",
   first_interview: "First interview",
+  hr_interview: "HR interview",
   technical_interview: "Technical interview",
   interview_process: "Interview",
   assignment_case_study: "Assignment / case study",

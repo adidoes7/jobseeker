@@ -59,8 +59,8 @@ type Status = (typeof STATUS_VALUES)[number];
 // logging "changed at the moment you clicked."
 const EVENT_TYPE_BY_STATUS: Partial<Record<Status, "interview" | "assignment">> = {
   recruiter_screening: "interview",
-  hr_interview: "interview",
   first_interview: "interview",
+  hr_interview: "interview",
   technical_interview: "interview",
   interview_process: "interview",
   final_interview: "interview",

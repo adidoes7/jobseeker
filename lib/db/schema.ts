@@ -406,8 +406,8 @@ export const OPPORTUNITY_STATUSES = [
 export const APPLIED_STATUSES = ["applied"] as const;
 export const PROCEEDED_STATUSES = [
   "recruiter_screening",
-  "hr_interview",
   "first_interview",
+  "hr_interview",
   "technical_interview",
   "interview_process",
   "assignment_case_study",

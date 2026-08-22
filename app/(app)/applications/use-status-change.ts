@@ -9,8 +9,8 @@ import { updateStatus } from "./actions";
 // actions.ts (that's the source of truth for which event type it becomes).
 export const DATED_STATUSES = new Set([
   "recruiter_screening",
-  "hr_interview",
   "first_interview",
+  "hr_interview",
   "technical_interview",
   "interview_process",
   "assignment_case_study",

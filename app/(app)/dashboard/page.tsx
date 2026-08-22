@@ -21,8 +21,8 @@ import { AddOpportunityDialog } from "../opportunities/add-opportunity-dialog";
 const STATUS_ORDER = [
   "applied",
   "recruiter_screening",
-  "hr_interview",
   "first_interview",
+  "hr_interview",
   "technical_interview",
   "interview_process",
   "assignment_case_study",
@@ -54,8 +54,8 @@ const STATUS_COLOR_MAP: Record<string, string> = {
 
 const INTERVIEWING_STATUSES = [
   "recruiter_screening",
-  "hr_interview",
   "first_interview",
+  "hr_interview",
   "technical_interview",
   "interview_process",
   "assignment_case_study",
@@ -180,8 +180,8 @@ export default async function DashboardPage() {
       label: "Interview+",
       value: allApplications.filter((a) =>
         [
-          "hr_interview",
           "first_interview",
+          "hr_interview",
           "technical_interview",
           "interview_process",
           "assignment_case_study",
