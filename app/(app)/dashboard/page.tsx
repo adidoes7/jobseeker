@@ -21,7 +21,9 @@ import { AddOpportunityDialog } from "../opportunities/add-opportunity-dialog";
 const STATUS_ORDER = [
   "applied",
   "recruiter_screening",
+  "hr_interview",
   "first_interview",
+  "technical_interview",
   "interview_process",
   "assignment_case_study",
   "final_interview",
@@ -36,7 +38,9 @@ const STATUS_ORDER = [
 const STATUS_COLOR_MAP: Record<string, string> = {
   applied: "var(--viz-series-1)",
   recruiter_screening: "var(--viz-series-4)",
+  hr_interview: "var(--viz-series-6)",
   first_interview: "var(--viz-series-2)",
+  technical_interview: "var(--viz-series-8)",
   interview_process: "var(--viz-series-7)",
   assignment_case_study: "var(--viz-series-5)",
   final_interview: "var(--viz-series-3)",
@@ -50,7 +54,9 @@ const STATUS_COLOR_MAP: Record<string, string> = {
 
 const INTERVIEWING_STATUSES = [
   "recruiter_screening",
+  "hr_interview",
   "first_interview",
+  "technical_interview",
   "interview_process",
   "assignment_case_study",
   "final_interview",
@@ -173,9 +179,15 @@ export default async function DashboardPage() {
     {
       label: "Interview+",
       value: allApplications.filter((a) =>
-        ["first_interview", "interview_process", "assignment_case_study", "final_interview", "offer"].includes(
-          a.status
-        )
+        [
+          "hr_interview",
+          "first_interview",
+          "technical_interview",
+          "interview_process",
+          "assignment_case_study",
+          "final_interview",
+          "offer",
+        ].includes(a.status)
       ).length,
     },
     {

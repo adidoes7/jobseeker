@@ -21,7 +21,9 @@ export const SOURCE_LABEL: Record<string, string> = {
 export const STATUS_COLOR: Record<string, string> = {
   applied: "bg-sky-500/15 text-sky-700 dark:text-sky-400",
   recruiter_screening: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
+  hr_interview: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
   first_interview: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
+  technical_interview: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
   interview_process: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
   assignment_case_study: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
   final_interview: "bg-amber-500/15 text-amber-700 dark:text-amber-400",

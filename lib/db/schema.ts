@@ -43,7 +43,9 @@ export const applicationStatusEnum = pgEnum("application_status", [
   // post-apply (Application pipeline)
   "applied",
   "recruiter_screening",
+  "hr_interview",
   "first_interview",
+  "technical_interview",
   "interview_process",
   "assignment_case_study",
   "final_interview",
@@ -137,7 +139,7 @@ export const profiles = pgTable("profiles", {
   experienceSummary: text("experience_summary"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-});
+}).enableRLS();
 
 // ---------- cvs (multiple named CV versions, one default) ----------
 export const cvs = pgTable("cvs", {
@@ -153,7 +155,7 @@ export const cvs = pgTable("cvs", {
   isDefault: boolean("is_default").default(false).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-});
+}).enableRLS();
 
 // ---------- companies ----------
 export const companies = pgTable("companies", {
@@ -164,7 +166,7 @@ export const companies = pgTable("companies", {
   size: text("size"),
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
+}).enableRLS();
 
 // ---------- applications: Job + Application, single record ----------
 export const applications = pgTable("applications", {
@@ -271,7 +273,7 @@ export const applications = pgTable("applications", {
 
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-});
+}).enableRLS();
 
 // ---------- timeline_events ----------
 export const timelineEvents = pgTable("timeline_events", {
@@ -285,7 +287,7 @@ export const timelineEvents = pgTable("timeline_events", {
   eventDate: timestamp("event_date", { withTimezone: true }).defaultNow().notNull(),
   isAutomatic: boolean("is_automatic").default(false).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
+}).enableRLS();
 
 // ---------- interviews (schema now, no UI this slice) ----------
 export const interviews = pgTable("interviews", {
@@ -301,7 +303,7 @@ export const interviews = pgTable("interviews", {
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-});
+}).enableRLS();
 
 // ---------- contacts (schema now, no UI this slice) ----------
 export const contacts = pgTable("contacts", {
@@ -316,7 +318,7 @@ export const contacts = pgTable("contacts", {
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-});
+}).enableRLS();
 
 // ---------- documents (generated materials — schema now, generation UI later) ----------
 export const documents = pgTable("documents", {
@@ -333,7 +335,7 @@ export const documents = pgTable("documents", {
   content: text("content"),
   cvId: uuid("cv_id").references(() => cvs.id),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
+}).enableRLS();
 
 // ---------- relations ----------
 export const applicationsRelations = relations(applications, ({ one, many }) => ({
@@ -404,7 +406,9 @@ export const OPPORTUNITY_STATUSES = [
 export const APPLIED_STATUSES = ["applied"] as const;
 export const PROCEEDED_STATUSES = [
   "recruiter_screening",
+  "hr_interview",
   "first_interview",
+  "technical_interview",
   "interview_process",
   "assignment_case_study",
   "final_interview",
